@@ -1,5 +1,5 @@
 {
-  "operacao": "OP-004",
+  "operacao": "OP-005",
   "modulo": "Núcleo de Comando",
   "status": "operacional",
   "indicadores": {
@@ -11,9 +11,7 @@
   },
   "ativos": [
     "Núcleo de Comando",
-    "Painel HUD (Space Dungeon)",
-    "Terminal de Comando (Duskers)",
-    "Sonar / Radar de Incerteza",
+    "Painel minimalista (single-file)",
     "Terminal PowerShell (integrado)"
   ],
   "integracoes": [
@@ -31,6 +29,8 @@
     { "id": "T-004", "titulo": "Inspeção e teste da nova interface", "status": "concluída", "responsavel": "servo-revisao" },
     { "id": "T-005", "titulo": "Terminal PowerShell no app (rota /api/ps + UI)", "status": "concluída", "responsavel": "servo-construcao" },
     { "id": "T-006", "titulo": "Revalidar terminal PowerShell após correção", "status": "concluída", "responsavel": "servo-revisao" },
-    { "id": "T-007", "titulo": "Endurecer guarda do terminal (contornos óbvios)", "status": "pendente", "responsavel": "servo-construcao" }
+    { "id": "T-007", "titulo": "Endurecer guarda do terminal (contornos óbvios)", "status": "pendente", "responsavel": "servo-construcao" },
+    { "id": "T-008", "titulo": "Minimalizar a interface (princípios min-maxing)", "status": "em execução", "responsavel": "servo-construcao" },
+    { "id": "T-009", "titulo": "Inspecionar a interface minimalista", "status": "pendente", "responsavel": "servo-revisao" }
   ]
 }
