@@ -57,6 +57,12 @@
   .msg.user{align-self:flex-end;background:#151a22;border:1px solid var(--line2)}
   .msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
   .msg.done{border-color:var(--ok)}
+.msg .passos{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.msg .passos:empty{display:none}
+.passo{font-size:11.5px;line-height:1.45;color:var(--muted);white-space:pre-wrap}
+.passo.ok{color:var(--ok)}
+.passo.falha{color:var(--bad)}
+.passo.agora{color:var(--accent)}
   .psOut{height:240px;overflow:auto;margin:0;background:#050608;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12.5px;line-height:1.5;color:#c8cfd8;white-space:pre-wrap;word-break:break-word}
   .psIn{display:flex;align-items:center;gap:10px;margin-top:8px}
   .psIn b{color:var(--accent);font-size:12px}
@@ -236,6 +242,33 @@ function addMsg(role, text){
   d.textContent = text || "";
   msgsEl.appendChild(d); msgsEl.scrollTop = msgsEl.scrollHeight; return d;
 }
+function addBot(){
+  const d = document.createElement("div");
+  d.className = "msg bot";
+  const passos = document.createElement("div"); passos.className = "passos";
+  const texto = document.createElement("div"); texto.className = "texto";
+  d.appendChild(passos); d.appendChild(texto);
+  msgsEl.appendChild(d); msgsEl.scrollTop = msgsEl.scrollHeight;
+  return { el: d, passos, texto };
+}
+const NOMES = { subagent:"drone", glob:"buscar arquivos", grep:"pesquisar", read:"ler arquivo", edit:"editar", write:"escrever", bash:"comando", shell:"comando", webfetch:"acessar web", websearch:"pesquisar web", task:"tarefa" };
+const rotulo = (n) => NOMES[n] || n || "ferramenta";
+function passoLinha(bot, info){
+  const anterior = bot.passos.querySelector(".agora");
+  if(anterior) anterior.remove();
+  if(info.estado === "pensando"){
+    const a = document.createElement("div"); a.className = "passo agora"; a.textContent = "… pensando";
+    bot.passos.appendChild(a);
+  } else if(info.estado === "iniciado"){
+    const a = document.createElement("div"); a.className = "passo agora"; a.textContent = "▸ " + rotulo(info.nome) + "…";
+    bot.passos.appendChild(a);
+  } else {
+    const a = document.createElement("div"); a.className = "passo " + (info.estado === "ok" ? "ok" : "falha");
+    a.textContent = (info.estado === "ok" ? "✓ " : "✗ ") + rotulo(info.nome);
+    bot.passos.appendChild(a);
+  }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
 async function checarStatus(){
   const st = el("chatStatus");
   try{
@@ -244,16 +277,20 @@ async function checarStatus(){
     else { st.textContent = "OpenCode: " + (s.erro || "conectando..."); st.className = "hint"; }
   }catch(_){ st.textContent = "OpenCode: servidor offline"; st.className = "hint"; }
 }
-function tratarSSE(raw, bolha){
+function tratarSSE(raw, bot){
   let ev = "", data = "";
   for(const line of raw.split("\n")){
     if(line.startsWith("event:")) ev = line.slice(6).trim();
     else if(line.startsWith("data:")) data += line.slice(5).trim();
   }
   let j = {}; try{ j = JSON.parse(data || "{}"); }catch(_){}
-  if(ev === "delta"){ bolha.textContent += j.d || ""; }
-  else if(ev === "error"){ bolha.textContent += "\n[erro: " + (j.message || "") + "]"; }
-  else if(ev === "done"){ bolha.classList.add("done"); }
+  if(ev === "delta"){ bot.texto.textContent += j.d || ""; }
+  else if(ev === "passo"){ passoLinha(bot, j); }
+  else if(ev === "error"){ bot.texto.textContent += "\n[erro: " + (j.message || "") + "]"; }
+  else if(ev === "done"){
+    bot.el.classList.add("done");
+    const a = bot.passos.querySelector(".agora"); if(a) a.remove();
+  }
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 async function enviarChat(){
@@ -261,22 +298,22 @@ async function enviarChat(){
   if(!text) return;
   el("chatIn").value = "";
   addMsg("user", text);
-  const bolha = addMsg("bot", "");
+  const bot = addBot();
   el("chatSend").disabled = true;
   el("chatStatus").textContent = "executando..."; el("chatStatus").className = "hint";
   try{
     const resp = await fetch("/api/chat", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text }) });
-    if(!resp.ok || !resp.body){ bolha.textContent = "[erro: HTTP " + resp.status + "]"; }
+    if(!resp.ok || !resp.body){ bot.texto.textContent = "[erro: HTTP " + resp.status + "]"; }
     else{
       const reader = resp.body.getReader(), dec = new TextDecoder();
       let buf = "";
       for(let ch = await reader.read(); !ch.done; ch = await reader.read()){
         buf += dec.decode(ch.value, { stream:true });
         let i;
-        while((i = buf.indexOf("\n\n")) >= 0){ const raw = buf.slice(0, i); buf = buf.slice(i + 2); if(raw.trim()) tratarSSE(raw, bolha); }
+        while((i = buf.indexOf("\n\n")) >= 0){ const raw = buf.slice(0, i); buf = buf.slice(i + 2); if(raw.trim()) tratarSSE(raw, bot); }
       }
     }
-  }catch(err){ bolha.textContent += "\n[erro: " + err.message + "]"; }
+  }catch(err){ bot.texto.textContent += "\n[erro: " + err.message + "]"; }
   el("chatSend").disabled = false;
   checarStatus(); carregar();
 }

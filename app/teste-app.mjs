@@ -23,6 +23,7 @@ while (true) {
     }
     let j = {}; try { j = JSON.parse(data || "{}"); } catch {}
     if (ev === "delta") texto += j.d || "";
+    else if (ev === "passo") console.log("PASSO:", JSON.stringify(j));
     else if (ev === "error") console.log("ERRO:", j.message);
   }
 }

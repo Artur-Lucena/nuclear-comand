@@ -14,7 +14,7 @@ let baseUrl = null;
 
 // ---------------------------------------------------------------- OpenCode
 const oc = { pronto: false, client: null, session: null, erro: null };
-const pendentes = new Map(); // sessionID -> { onDelta, done, fail }
+const pendentes = new Map(); // sessionID -> { nomes, onDelta, tool, done, fail }
 
 async function iniciarOpenCode() {
   try {
@@ -41,6 +41,11 @@ async function iniciarOpenCode() {
         const w = pendentes.get(d.sessionID);
         if (!w) continue;
         if (ev.type === "session.text.delta") w.onDelta(d.delta || "");
+        // progresso ao vivo: ferramentas e raciocínio (o console mostra o que está acontecendo)
+        else if (ev.type === "session.tool.input.started") { w.nomes.set(d.id, d.name); w.tool({ estado: "iniciado", nome: d.name, id: d.id }); }
+        else if (ev.type === "session.tool.success") w.tool({ estado: "ok", nome: w.nomes.get(d.id), id: d.id });
+        else if (ev.type === "session.tool.failed") w.tool({ estado: "falha", nome: w.nomes.get(d.id), id: d.id });
+        else if (ev.type === "session.reasoning.started") w.tool({ estado: "pensando" });
         else if (ev.type === "session.execution.failed") w.fail(d.error || "falha na execução");
         else if (ev.type === "session.execution.succeeded" || ev.type === "session.idle") w.done();
       }
@@ -94,7 +99,9 @@ function rotaChat(req, res) {
     };
 
     pendentes.set(sid, {
+      nomes: new Map(),
       onDelta: (d) => { if (!fim) sse(res, "delta", { d }); },
+      tool: (info) => { if (!fim) sse(res, "passo", info); },
       done: () => finalizar("done", {}),
       fail: (m) => finalizar("error", { message: String(m) }),
     });

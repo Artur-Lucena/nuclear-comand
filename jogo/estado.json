@@ -1,12 +1,12 @@
 {
-  "operacao": "OP-005",
+  "operacao": "OP-006",
   "modulo": "Núcleo de Comando",
   "status": "operacional",
   "indicadores": {
     "capacidade": 1000,
     "suprimentos": 500,
     "equipe": 120,
-    "eficiencia": 85,
+    "eficiencia": 90,
     "conhecimento": 180
   },
   "ativos": [
@@ -30,7 +30,10 @@
     { "id": "T-005", "titulo": "Terminal PowerShell no app (rota /api/ps + UI)", "status": "concluída", "responsavel": "servo-construcao" },
     { "id": "T-006", "titulo": "Revalidar terminal PowerShell após correção", "status": "concluída", "responsavel": "servo-revisao" },
     { "id": "T-007", "titulo": "Endurecer guarda do terminal (contornos óbvios)", "status": "pendente", "responsavel": "servo-construcao" },
-    { "id": "T-008", "titulo": "Minimalizar a interface (princípios min-maxing)", "status": "em execução", "responsavel": "servo-construcao" },
-    { "id": "T-009", "titulo": "Inspecionar a interface minimalista", "status": "pendente", "responsavel": "servo-revisao" }
+    { "id": "T-008", "titulo": "Minimalizar a interface (princípios min-maxing)", "status": "concluída", "responsavel": "servo-construcao" },
+    { "id": "T-009", "titulo": "Inspecionar a interface minimalista", "status": "concluída", "responsavel": "servo-revisao" },
+    { "id": "T-010", "titulo": "Recon: padrões de UI (IDE + idle game)", "status": "em execução", "responsavel": "servo-busca" },
+    { "id": "T-011", "titulo": "Reconstruir interface como IDE idle (chat no centro)", "status": "pendente", "responsavel": "servo-construcao" },
+    { "id": "T-012", "titulo": "Inspecionar a interface IDE idle", "status": "pendente", "responsavel": "servo-revisao" }
   ]
 }

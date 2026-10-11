@@ -69,3 +69,28 @@ destrutivos; cwd correto. Ressalva: a guarda é lista negra e não é sandbox (c
 
 > ⚠️ O terminal só passa a existir após **reiniciar o app** (o processo Electron em execução
 > foi iniciado antes da edição do `main.js`).
+
+## OP-005 — Minimalização da interface (min-maxing)
+
+Ordem recebida: a interface estava poluída e cheia de informação inútil; torná-la minimalista
+sob o princípio "menos é mais" (maximizar sinal por pixel).
+
+**servo-construcao** reescreveu `jogo/interface.html` do zero como painel minimalista de
+arquivo único: **349 linhas** (contra ~1250). Corte completo de todo o ruído decorativo:
+campo de estrelas/scanlines, banner e MODO ALERTA, sonar animado + medidores de agulha, mapa
+de setores SVG + frota/prazos, pips de energia simulados, reator/cadeia Energia→O2→Moral,
+compartimentos/quarentena, feed de rumores e timers falsos, abas por departamento, modo
+PLANEJAR, terminal de comandos local fake, e todas as animações/glow/gradientes decorativos.
+Passou a exibir apenas o essencial: cabeçalho (módulo • operação • status), os 5 indicadores,
+tarefas, registro, parceiros, ativos & integrações — e as **3 ações reais** (Nova Ordem,
+Console do GESTOR/OpenCode e Terminal PowerShell). Novo visual sóbrio: fundo quase preto, um
+único acento, tipografia por hierarquia, sem animações.
+
+**servo-revisao** inspecionou: **APROVADO**. 26/26 checagens: todos os recursos cortados
+ausentes, todos os essenciais presentes, zero referências externas, HTML bem-formado, 20 ids
+únicos sem duplicatas, `node --check` exit 0, e teste real do servidor com HTTP 200 em `/`,
+`/api/estado` e `/api/registro`. Ressalvas: rotas `/api/chat` e `/api/ps` só existem no app
+Electron; a porta 5173 estava ocupada por um processo órfão de sessão anterior.
+
+> ℹ️ A interface só reflete a mudança após **recarregar** o painel no app (ou reiniciar o
+> Electron se o processo estiver servindo a versão antiga em memória).
