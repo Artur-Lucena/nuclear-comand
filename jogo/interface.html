@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>🛰️ Núcleo de Comando — Painel de Comando</title>
+<style>
+  /* ============================================================
+     PALETA E BASE — tema sci-fi escuro "space dungeon"
+     ============================================================ */
+  :root{
+    --bg:#03050c; --panel:rgba(9,17,30,.82); --panel2:rgba(12,22,40,.9);
+    --cyan:#39e6ff; --green:#4dffa6; --pink:#ff4d9d; --amber:#ffc857; --violet:#b07be0;
+    --red:#ff5c5c; --ink:#dbe9ff; --muted:#7d93b8; --line:#1d3350; --line2:#264a70;
+    --acento:var(--cyan);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 15% 0%, #102348 0%, transparent 55%),
+      radial-gradient(900px 600px at 90% 100%, #2a0e3d 0%, transparent 55%),
+      var(--bg);
+    min-height:100%;overflow-x:hidden;
+  }
+  /* MODO ALERTA (ideia 15): acentos mudam para vermelho/âmbar */
+  body.alerta{--acento:#ff8a3d;--cyan:#ffb347;--green:#ffb347}
+  body.alerta{background:
+      radial-gradient(900px 520px at 15% 0%, #4a1b0a 0%, transparent 58%),
+      radial-gradient(900px 600px at 90% 100%, #4a0f1f 0%, transparent 58%),
+      #0b0507}
+  body.alerta .card{border-color:#7a3b12}
+  body.alerta h1{color:#ffd9b0;text-shadow:0 0 14px rgba(255,138,61,.8)}
+
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .scan{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(57,230,255,.05) 0 1px,transparent 1px 3px);opacity:.5}
+  .wrap{position:relative;z-index:2;max-width:1320px;margin:0 auto;padding:18px 18px 60px}
+
+  /* faixa de alerta (ideia 15) */
+  .banner{position:fixed;left:0;right:0;top:0;z-index:5;text-align:center;padding:6px 10px;
+    font-family:Consolas,ui-monospace,monospace;font-size:13px;letter-spacing:3px;
+    background:linear-gradient(90deg,#3a0d0d,#7a2a00,#3a0d0d);color:#ffe4c4;
+    border-bottom:1px solid #b1560e;box-shadow:0 0 30px rgba(255,120,40,.55);
+    display:none;animation:pulse 1.1s infinite}
+  body.alerta .banner{display:block}
+
+  /* ============================================================
+     CABEÇALHO / HUD
+     ============================================================ */
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;
+    border-bottom:1px solid var(--line2);padding-bottom:14px;margin-bottom:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px}
+  .crest{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:28px;
+    background:radial-gradient(circle at 30% 20%,#123,#050a14);border:1px solid var(--cyan);
+    box-shadow:0 0 24px rgba(57,230,255,.35),inset 0 0 18px rgba(57,230,255,.15)}
+  h1{font-family:Consolas,ui-monospace,monospace;font-size:26px;margin:0;letter-spacing:3px;
+    color:#eaf7ff;text-shadow:0 0 14px rgba(57,230,255,.75),0 0 30px rgba(57,230,255,.35)}
+  h1 span{color:var(--pink);text-shadow:0 0 14px rgba(255,77,157,.8)}
+  .sub{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+  .turno{display:flex;gap:12px;text-align:center;flex-wrap:wrap}
+  .turno .box{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:8px 14px;min-width:104px;
+    box-shadow:0 0 18px rgba(57,230,255,.12)}
+  .turno .box b{display:block;font-size:18px;color:var(--cyan);font-family:Consolas,monospace}
+  .turno .box span{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+  /* cronômetro da janela de comando (ideia 14) */
+  .janela b{color:var(--green)}
+  .janela.urgente{border-color:var(--red);box-shadow:0 0 22px rgba(255,92,92,.6);animation:pulse .8s infinite}
+  .janela.urgente b{color:var(--red)}
+  button.mini{padding:7px 12px;font-size:11px;letter-spacing:1px;border-radius:8px}
+  button.ghost{background:transparent;border:1px solid var(--line2);color:var(--ink);box-shadow:none}
+  button.ghost.ativo{background:linear-gradient(180deg,var(--amber),#8a5f00);color:#1a1000;border-color:var(--amber)}
+
+  /* abas de departamento (ideia 12) */
+  .abas{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .aba{background:rgba(3,8,16,.75);border:1px solid var(--line2);color:var(--muted);
+    padding:8px 14px;border-radius:8px;font-size:12px;letter-spacing:1.5px;font-family:Consolas,monospace;
+    cursor:pointer;text-transform:uppercase}
+  .aba.ativa{color:#02121a;background:linear-gradient(180deg,var(--acento),#0e7fa0);border-color:var(--acento);
+    box-shadow:0 0 16px rgba(57,230,255,.5)}
+
+  /* dica contextual do modo PLANEJAR (ideia 13) */
+  .dica{border:1px dashed var(--line2);border-radius:8px;padding:8px 12px;margin:0 0 14px;
+    font-family:Consolas,monospace;font-size:12px;color:var(--muted);background:rgba(3,8,16,.55)}
+  body.planejar .dica{color:var(--amber);border-color:var(--amber);box-shadow:0 0 18px rgba(255,200,87,.25)}
+
+  /* pausa de animações no modo PLANEJAR (ideia 13) */
+  body.planejar *{animation-play-state:paused !important}
+
+  /* ============================================================
+     GRID / CARDS
+     ============================================================ */
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .wide{grid-column:1/-1}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line2);
+    border-radius:14px;padding:14px 16px;backdrop-filter:blur(4px);box-shadow:0 10px 34px rgba(0,0,0,.5);
+    position:relative;overflow:hidden}
+  /* cantos chanfrados técnicos */
+  .card::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(135deg,var(--acento) 0 2px,transparent 2px) top left/14px 14px no-repeat,
+               linear-gradient(-45deg,var(--acento) 0 2px,transparent 2px) top right/14px 14px no-repeat,
+               linear-gradient(45deg,var(--acento) 0 2px,transparent 2px) bottom left/14px 14px no-repeat,
+               linear-gradient(-135deg,var(--acento) 0 2px,transparent 2px) bottom right/14px 14px no-repeat;
+    opacity:.7}
+  .card h2{font-family:Consolas,ui-monospace,monospace;font-size:13px;letter-spacing:2px;margin:0 0 12px;color:var(--acento);
+    text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .card h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+  .card .nota{color:var(--muted);font-size:11px;font-family:Consolas,monospace;letter-spacing:.5px;margin-top:10px}
+  /* realce da aba ativa (ideia 12) */
+  .card.fora{display:none}
+  .card.ativa{border-color:var(--acento);box-shadow:0 0 26px rgba(57,230,255,.25)}
+
+  /* ============================================================
+     MÓDULOS DE ENERGIA / PIPS (ideias 1 e 2)
+     ============================================================ */
+  .recursos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:620px){.recursos{grid-template-columns:1fr}}
+  .mod{background:rgba(3,8,16,.7);border:1px solid var(--line);border-radius:10px;padding:9px 11px;transition:.25s}
+  .mod.off{opacity:.5;filter:grayscale(.6)}
+  .mod.lit{border-color:var(--c);box-shadow:inset 0 0 22px rgba(57,230,255,.08)}
+  .modTop{display:flex;align-items:center;gap:8px}
+  .modTop .lbl{flex:1;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .modTop .val{font-size:18px;font-family:Consolas,monospace;color:var(--ink)}
+  .sema{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+  .s-ok{background:var(--green);box-shadow:0 0 10px var(--green)}
+  .s-meio{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .s-ruim{background:var(--red);box-shadow:0 0 10px var(--red)}
+  .pips{display:flex;gap:3px;margin:8px 0 6px}
+  .pip{flex:1;height:16px;border-radius:3px;background:#04101d;border:1px solid var(--line);cursor:pointer;transition:.12s}
+  .pip.on{background:linear-gradient(180deg,var(--c),#06202e);border-color:var(--c);box-shadow:0 0 8px var(--c)}
+  .pip:hover{border-color:#fff;transform:translateY(-1px)}
+  .modInfo{display:flex;justify-content:space-between;font-family:Consolas,monospace;font-size:10px;color:var(--muted);letter-spacing:1px}
+  .bar{position:relative;height:8px;border-radius:6px;background:#02040a;overflow:visible;margin-top:6px;border:1px solid var(--line)}
+  .bar>i{display:block;height:100%;border-radius:6px;transition:width .5s ease;box-shadow:0 0 10px currentColor}
+  .bar>.mark{position:absolute;top:-4px;width:2px;height:16px;background:#fff;box-shadow:0 0 8px #fff;border-radius:2px}
+
+  /* ============================================================
+     REATOR / SISTEMAS CRÍTICOS (ideia 8)
+     ============================================================ */
+  .linhaReator{display:flex;align-items:center;gap:12px;font-family:Consolas,monospace}
+  input[type=range]{width:100%;accent-color:var(--amber);cursor:pointer}
+  .cadeia{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .noCadeia{flex:1;min-width:90px;background:rgba(3,8,16,.7);border:1px solid var(--line);border-radius:9px;padding:8px 10px;text-align:center}
+  .noCadeia b{display:block;font-family:Consolas,monospace;font-size:16px;color:var(--acento)}
+  .noCadeia span{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .seta{color:var(--muted);font-size:14px}
+  .avisoSobrecarga{display:none;margin-top:10px;padding:8px 10px;border-radius:8px;font-family:Consolas,monospace;font-size:12px;
+    background:rgba(90,20,10,.6);border:1px solid var(--red);color:#ffd0c0;animation:pulse .9s infinite}
+  .avisoSobrecarga.on{display:block}
+
+  /* ============================================================
+     COMPARTIMENTOS / CORTE DA NAVE (ideia 9)
+     ============================================================ */
+  .casco{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px;
+    border:2px dashed var(--line2);border-radius:16px;background:rgba(2,6,14,.55)}
+  @media(max-width:760px){.casco{grid-template-columns:1fr}}
+  .comp{border:1px solid var(--line);border-left-width:6px;border-radius:10px;padding:10px;background:rgba(3,8,16,.72);
+    transition:.25s}
+  .comp .cnome{font-family:Consolas,monospace;font-size:12px;letter-spacing:1px}
+  .comp .cval{font-family:Consolas,monospace;font-size:11px;color:var(--muted);margin:6px 0}
+  .comp.q{opacity:.45;filter:grayscale(.8)}
+  .comp .cbtn{width:100%;margin-top:8px;padding:6px;font-size:10px;letter-spacing:1px;border-radius:7px;
+    background:transparent;border:1px solid var(--line2);color:var(--ink);cursor:pointer;font-family:Consolas,monospace}
+  .comp .cbtn.on{background:rgba(255,92,92,.18);border-color:var(--red);color:#ffd0d0}
+
+  /* ============================================================
+     MAPA DE SETORES (ideia 3)
+     ============================================================ */
+  .mapa{position:relative;border:1px solid var(--line);border-radius:12px;background:
+      radial-gradient(circle at 50% 50%,rgba(20,60,110,.35),transparent 70%),rgba(2,6,14,.7);overflow:hidden}
+  .mapa svg{display:block;width:100%;height:auto}
+  .lig{stroke:#2c5680;stroke-width:1.6;stroke-dasharray:6 5}
+  .lig.at{stroke:#2f7d63}
+  .lig.dead{stroke:#7a2b3f;stroke-dasharray:3 6}
+  .nno{fill:#0a1f30;stroke:var(--cyan);stroke-width:2}
+  .anel{fill:none;stroke:rgba(57,230,255,.35);stroke-width:1}
+  .noParceiro{fill:#0a1f30;stroke:var(--muted);stroke-width:2}
+  .noParceiro.at{stroke:var(--green)}
+  .noParceiro.ruim{stroke:var(--red)}
+  .noblock{fill:#1a0a12;stroke:var(--red);stroke-width:2;stroke-dasharray:4 4}
+  .maplbl{fill:#cfe4ff;font-family:Consolas,monospace;font-size:11px;text-anchor:middle}
+  .maplbl.dim{fill:#7d93b8}
+  .blink{animation:pulse 1.2s infinite}
+  .frota{position:absolute;left:-8%;top:54%;font-size:22px;color:var(--amber);text-shadow:0 0 12px var(--amber);
+    animation:frotaRun 16s linear infinite;pointer-events:none}
+  .frota em{position:absolute;left:50%;top:-16px;transform:translateX(-50%);font-size:9px;font-style:normal;
+    letter-spacing:2px;color:var(--amber)}
+  .rota{position:absolute;inset:auto 0 46% 0;height:0;border-top:1px dashed rgba(255,200,87,.35)}
+
+  /* ============================================================
+     SONAR / MEDIDORES (ideia 10)
+     ============================================================ */
+  .sonar{position:relative;width:230px;height:230px;margin:0 auto;border-radius:50%;
+    background:radial-gradient(circle,rgba(10,60,60,.55),rgba(2,10,16,.9));
+    border:2px solid #1f6e63;box-shadow:0 0 30px rgba(77,255,166,.18),inset 0 0 30px rgba(77,255,166,.12)}
+  .sonar .anel2{position:absolute;inset:14%;border:1px solid rgba(77,255,166,.25);border-radius:50%}
+  .sonar .anel3{position:absolute;inset:31%;border:1px solid rgba(77,255,166,.25);border-radius:50%}
+  .sonar .eixo{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(77,255,166,.2)}
+  .sonar .eixo2{position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(77,255,166,.2)}
+  .varredura{position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 0deg,rgba(77,255,166,.45) 0deg,transparent 55deg,transparent 360deg);
+    animation:girar 4s linear infinite}
+  .blip{position:absolute;width:8px;height:8px;border-radius:50%;transform:translate(-50%,-50%);
+    background:var(--green);box-shadow:0 0 10px var(--green)}
+  .blip.inc{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:pulse 1.4s infinite}
+  .blip.ameaca{background:var(--red);box-shadow:0 0 10px var(--red);animation:pulse .8s infinite}
+  .gauges{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-top:14px}
+  .gauge{text-align:center}
+  .gauge span{display:block;font-family:Consolas,monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+
+  /* ============================================================
+     RUMORES / TIMERS (ideias 5 e 14)
+     ============================================================ */
+  .rumor{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:9px;
+    background:rgba(3,8,16,.7);margin-bottom:8px}
+  .rumor .txt{flex:1;font-size:13px}
+  .rumor .jan{font-family:Consolas,monospace;font-size:12px;color:var(--amber);white-space:nowrap}
+  .rumor.exp .jan{color:var(--red)}
+  .rumor.exp{opacity:.6}
+  .rel{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .rel:last-child{border-bottom:none}
+  .rel .rbar{width:120px;height:7px;border-radius:6px;background:#02040a;border:1px solid var(--line);overflow:hidden}
+  .rel .rbar>i{display:block;height:100%;box-shadow:0 0 8px currentColor}
+
+  /* ============================================================
+     TAREFAS
+     ============================================================ */
+  .task{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);
+    border-radius:9px;background:rgba(3,8,16,.7);margin-bottom:8px}
+  .task .tid{font-family:Consolas,monospace;font-size:12px;color:var(--muted);min-width:52px}
+  .task .ttitle{flex:1;font-size:14px}
+  .task .tstatus{font-size:11px;text-transform:uppercase;letter-spacing:1px;border:1px solid;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .task .tstatus.run{animation:pulse 1.4s infinite}
+  .task.bloq{border-color:var(--red);box-shadow:0 0 16px rgba(255,92,92,.35);animation:pulse 1.1s infinite}
+
+  ul.tags{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+  ul.tags li{background:rgba(3,8,16,.7);border:1px solid var(--line2);border-radius:20px;padding:6px 12px;font-size:13px}
+
+  /* ============================================================
+     LOG DE TRANSMISSÕES (ideia 4)
+     ============================================================ */
+  .cronica{max-height:330px;overflow:auto;font-family:Consolas,ui-monospace,monospace;font-size:12.5px;line-height:1.55;
+    padding:10px;border:1px solid var(--line);border-radius:9px;background:#02060c}
+  .tline{display:flex;gap:8px;padding:2px 0;color:#a9d8c5}
+  .tline .ts{color:#4b6f63;flex:none}
+  .tline .pre{color:var(--green);flex:none}
+  .tline.hd{color:var(--cyan);letter-spacing:1px;margin-top:6px}
+  .tline b{color:#fff}
+  .cronica::-webkit-scrollbar{width:8px}
+  .cronica::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+  .msgs::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+
+  /* ============================================================
+     TERMINAL (ideia 11)
+     ============================================================ */
+  .term{height:230px;overflow:auto;background:#02060c;border:1px solid #1f6e5a;border-radius:9px;padding:10px;
+    font-family:Consolas,ui-monospace,monospace;font-size:12.5px;color:#7dffc4;line-height:1.5}
+  .term .echo{color:#ffc857}
+  .term .err{color:#ff8080}
+  .term .hl{color:#39e6ff}
+  .term input{border:none}
+  .termIn{display:flex;gap:8px;align-items:center;margin-top:8px;background:#02060c;border:1px solid #1f6e5a;border-radius:9px;padding:8px 10px}
+  .termIn b{color:var(--amber);font-family:Consolas,monospace}
+  .termIn input{flex:1;background:transparent;border:none;color:#7dffc4;font-family:Consolas,monospace;font-size:13px;outline:none}
+
+  /* ============================================================
+     TERMINAL POWERSHELL (execução real via rota /api/ps)
+     ============================================================ */
+  .psOut{height:260px;overflow:auto;background:#000;border:1px solid #2c6e4f;border-radius:9px;padding:10px;
+    font-family:Consolas,ui-monospace,monospace;font-size:12.5px;color:#7dffc4;line-height:1.45;
+    white-space:pre-wrap;word-break:break-word;margin:0}
+  .psOut .psEcho{color:var(--amber)}
+  .psOut .psErr{color:var(--red)}
+  .psOut .psMeta{color:var(--muted)}
+  .psOut::-webkit-scrollbar{width:8px}
+  .psOut::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+  .psIn{display:flex;gap:8px;align-items:center;margin-top:8px;background:#000;border:1px solid #2c6e4f;border-radius:9px;padding:8px 10px}
+  .psIn b{color:var(--amber);font-family:Consolas,monospace}
+  .psIn input{flex:1;background:transparent;border:none;outline:none;color:#7dffc4;font-family:Consolas,monospace;font-size:13px}
+  .psIn input:disabled{opacity:.5}
+  .psBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+
+  /* ============================================================
+     CHAT / ORDENS
+     ============================================================ */
+  textarea{width:100%;min-height:70px;background:#03060d;border:1px solid var(--line2);border-radius:10px;
+    color:var(--ink);padding:12px;font-size:15px;resize:vertical;font-family:inherit}
+  textarea:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 14px rgba(57,230,255,.3)}
+  .row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+  button{background:linear-gradient(180deg,var(--acento),#0e7fa0);color:#02121a;border:none;border-radius:10px;
+    padding:11px 22px;font-size:14px;font-weight:800;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;
+    box-shadow:0 0 18px rgba(57,230,255,.4)}
+  button:hover{filter:brightness(1.12)}
+  button:disabled{opacity:.6;cursor:wait}
+  .hint{color:var(--muted);font-size:12px}
+  .ok{color:var(--green);font-size:13px}
+  .msgs{max-height:280px;overflow:auto;padding:8px 4px;display:flex;flex-direction:column;gap:8px}
+  .msg{padding:9px 12px;border-radius:10px;font-size:14px;line-height:1.5;white-space:pre-wrap;max-width:92%;word-wrap:break-word}
+  .msg.user{align-self:flex-end;background:rgba(57,230,255,.14);border:1px solid var(--line2)}
+  .msg.bot{align-self:flex-start;background:rgba(3,8,16,.82);border:1px solid var(--line)}
+  .msg.bot.done{border-color:var(--green);box-shadow:0 0 12px rgba(77,255,166,.2)}
+  .msgs::-webkit-scrollbar{width:8px}
+  .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;letter-spacing:1px}
+  .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);
+    box-shadow:0 0 10px var(--green);margin-right:6px;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes girar{to{transform:rotate(360deg)}}
+  @keyframes frotaRun{
+    0%{left:-8%;top:58%;opacity:0}
+    12%{opacity:1}
+    45%{top:34%}
+    88%{opacity:1}
+    100%{left:105%;top:58%;opacity:0}
+  }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="scan"></div>
+<div class="banner" id="alerta">⚠ ALERTA — SISTEMAS CRÍTICOS EM CASCATA • PROTOCOLO DE EMERGÊNCIA ⚠</div>
+
+<div class="wrap">
+  <!-- ================= CABEÇALHO HUD ================= -->
+  <header class="top">
+    <div class="brand">
+      <div class="crest">🛰️</div>
+      <div>
+        <h1>NÚCLEO <span>DE COMANDO</span></h1>
+        <div class="sub"><span class="live"></span>Sistema de Gestão Operacional • <span id="modulo">–</span></div>
+      </div>
+    </div>
+    <div class="turno">
+      <div class="box janela" id="janelaBox"><b id="janela">90</b><span>Janela de comando</span></div>
+      <div class="box"><b id="operacao">–</b><span>Operação</span></div>
+      <div class="box"><b id="status">–</b><span>Status</span></div>
+      <div class="box"><button id="btnPlanejar" class="mini ghost">Planejar</button><span>Pausa tática</span></div>
+    </div>
+  </header>
+
+  <!-- ================= ABAS POR DEPARTAMENTO (ideia 12) ================= -->
+  <div class="abas" id="abas">
+    <button class="aba ativa" data-dept="todos">◈ Todos</button>
+    <button class="aba" data-dept="comando">🛡️ Comando</button>
+    <button class="aba" data-dept="engenharia">⚙️ Engenharia</button>
+    <button class="aba" data-dept="intel">📡 Intel</button>
+    <button class="aba" data-dept="logistica">📦 Logística</button>
+    <button class="aba" data-dept="comms">📶 Comms</button>
+  </div>
+
+  <div class="dica" id="dica">Dica contextual: ative PLANEJAR e clique em um módulo para inspecionar.</div>
+
+  <div class="grid" id="painel">
+
+    <!-- ---------- 1/2: INDICADORES + PIPS DE ENERGIA (ENGENHARIA) ---------- -->
+    <section class="card" data-dept="engenharia" data-dica="Cada fileira de pips é a energia alocada. Clique em um pip para realocar; NORMALIZAR devolve a distribuição proporcional aos dados reais.">
+      <h2>⚡ Indicadores &amp; Pips de Energia</h2>
+      <div class="recursos" id="recursos"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnNormalizar" class="mini">Normalizar</button>
+        <span class="hint" id="energiaInfo">–</span>
+      </div>
+      <div class="nota">Energia = pips acesos (alocação local). A marca branca sobre a barra mostra o valor REAL dos dados.</div>
+    </section>
+
+    <!-- ---------- 8: REATOR / SISTEMAS CRÍTICOS (ENGENHARIA) ---------- -->
+    <section class="card" data-dept="engenharia" data-dica="Reator acima de 80% entra em SOBRECARGA e dispara o MODO ALERTA. A cadeia Energia → O2 → Moral mostra o efeito em cascata.">
+      <h2>🔧 Reator &amp; Sistemas Críticos</h2>
+      <div class="linhaReator">
+        <span style="font-family:Consolas,monospace;font-size:12px;color:var(--muted)">POTÊNCIA</span>
+        <input type="range" id="reator" min="0" max="100" value="80" />
+        <b id="reatorVal" style="font-family:Consolas,monospace;color:var(--amber);min-width:42px;text-align:right">80%</b>
+      </div>
+      <div class="cadeia">
+        <div class="noCadeia"><b id="cEnergia">–</b><span>Energia</span></div>
+        <span class="seta">▶</span>
+        <div class="noCadeia"><b id="cO2">–</b><span>Oxigênio</span></div>
+        <span class="seta">▶</span>
+        <div class="noCadeia"><b id="cMoral">–</b><span>Moral</span></div>
+      </div>
+      <div class="avisoSobrecarga" id="avisoReator">⚠ SOBRECARGA DO REATOR — estabilidade comprometida, risco de falha em cascata.</div>
+      <div class="nota">Trade-off: mais potência → mais capacidade, menos estabilidade.</div>
+    </section>
+
+    <!-- ---------- 9: VISTA EM CORTE POR COMPARTIMENTOS (ENGENHARIA) ---------- -->
+    <section class="card wide" data-dept="engenharia" data-dica="Vista em corte do casco. Cada compartimento tem semáforo de saúde e botão de ISOLAMENTO/QUARENTENA.">
+      <h2>🛠️ Corte da Nave — Compartimentos</h2>
+      <div class="casco" id="compartimentos"></div>
+      <div class="nota">Compartimentos isolados ficam apagados e não recebem energia.</div>
+    </section>
+
+    <!-- ---------- 3: MAPA DE SETORES (COMANDO) ---------- -->
+    <section class="card wide" data-dept="comando" data-dica="Mapa de setores conectados. O marcador ▲ representa a frota/prazo avançando — pressão temporal sobre a operação.">
+      <h2>🗺️ Mapa de Setores &amp; Rotas</h2>
+      <div class="mapa" id="mapa">
+        <svg viewBox="0 0 620 260" preserveAspectRatio="xMidYMid meet" id="svMapa"></svg>
+        <div class="rota"></div>
+        <div class="frota">▲<em>PRAZO</em></div>
+      </div>
+      <div class="nota">Nó piscando = contato desconhecido/incerto. Nós com X = setores bloqueados.</div>
+    </section>
+
+    <!-- ---------- 14: TAREFAS (COMANDO) ---------- -->
+    <section class="card" data-dept="comando" data-dica="Tarefas bloqueadas piscam em vermelho e acionam o MODO ALERTA. Tarefas em execução alimentam a janela de comando.">
+      <h2>🎯 Tarefas em Execução</h2>
+      <div id="tarefas"></div>
+    </section>
+
+    <!-- ---------- 6: MORAL DA EQUIPE (LOGÍSTICA) ---------- -->
+    <section class="card" data-dept="logistica" data-dica="Moral deriva de Eficiência e Conhecimento. Abaixo de 40% entra em risco crítico de insatisfação.">
+      <h2>💠 Moral &amp; Satisfação da Equipe</h2>
+      <div id="moral"></div>
+    </section>
+
+    <!-- ---------- 5: RUMORES / JANELAS (INTEL) ---------- -->
+    <section class="card" data-dept="intel" data-dica="Feed de rumores gerado a partir dos dados reais. Cada item tem uma janela de oportunidade com contador regressivo.">
+      <h2>📰 Feed de Rumores &amp; Janelas</h2>
+      <div id="rumores"></div>
+    </section>
+
+    <!-- ---------- 10: SONAR + MEDIDORES (INTEL) ---------- -->
+    <section class="card" data-dept="intel" data-dica="Sonar circular com blips de incerteza (podem ser ameaça ou nada) e medidores analógicos de agulha.">
+      <h2>📡 Sonar &amp; Medidores</h2>
+      <div class="sonar">
+        <div class="varredura"></div>
+        <div class="anel2"></div><div class="anel3"></div>
+        <div class="eixo"></div><div class="eixo2"></div>
+        <div class="blip" style="left:62%;top:38%"></div>
+        <div class="blip" style="left:30%;top:66%"></div>
+        <div class="blip inc" style="left:74%;top:70%"></div>
+        <div class="blip inc" style="left:38%;top:28%"></div>
+        <div class="blip ameaca" style="left:20%;top:44%"></div>
+      </div>
+      <div class="gauges" id="gauges"></div>
+    </section>
+
+    <!-- ---------- 4: LOG DE TRANSMISSÕES (INTEL) ---------- -->
+    <section class="card" data-dept="intel" data-dica="Ship log: as linhas de /api/registro são convertidas em transmissões de terminal com timestamp.">
+      <h2>🖥️ Log de Transmissões</h2>
+      <div class="cronica" id="cronica"></div>
+    </section>
+
+    <!-- ---------- 7: PARCEIROS / REPUTAÇÃO (COMMS) ---------- -->
+    <section class="card" data-dept="comms" data-dica="Reputação e saldo por parceiro. Verde = aliado, cinza = sem contato, vermelho = hostil/crítico.">
+      <h2>🤝 Parceiros &amp; Reputação</h2>
+      <div id="parceiros"></div>
+    </section>
+
+    <!-- ---------- ATIVOS & INTEGRAÇÕES (LOGÍSTICA) ---------- -->
+    <section class="card" data-dept="logistica" data-dica="Ativos e integrações registrados no estado atual.">
+      <h2>🧩 Ativos &amp; Integrações</h2>
+      <div style="margin-bottom:12px"><div class="sub" style="margin-bottom:8px">🔩 Ativos</div><ul class="tags" id="ativos"></ul></div>
+      <div><div class="sub" style="margin-bottom:8px">🔗 Integrações</div><ul class="tags" id="integracoes"></ul></div>
+    </section>
+
+    <!-- ---------- 11: TERMINAL DE COMANDOS (COMMS) ---------- -->
+    <section class="card wide" data-dept="comms" data-dica="Terminal local: digite help para ver os comandos. Tab autocompleta, ↑/↓ navega no histórico.">
+      <h2>⌨️ Terminal de Comandos</h2>
+      <div class="term" id="term"></div>
+      <div class="termIn">
+        <b>comando›</b>
+        <input id="termIn" autocomplete="off" spellcheck="false" placeholder="help, status, ativos, parceiros, tarefas, mapa, energia, rumores, limpar" />
+      </div>
+    </section>
+
+    <!-- ---------- TERMINAL POWERSHELL (COMMS) ---------- -->
+    <section class="card wide" data-dept="comms" data-dica="Terminal real do Windows: os comandos rodam no processo principal do Electron via rota /api/ps. ↑/↓ navega no histórico, Ctrl+L limpa a tela.">
+      <h2>🖥️ Terminal PowerShell</h2>
+      <pre class="psOut" id="psOut"></pre>
+      <div class="psIn">
+        <b>PS&gt;</b>
+        <input id="psIn" autocomplete="off" spellcheck="false" placeholder="ex.: Get-Date  •  dir  •  node -v  (Enter executa)" />
+        <button id="psRun" class="mini">Rodar</button>
+      </div>
+      <div class="psBar">
+        <button id="psLimpar" class="mini ghost">Limpar</button>
+        <span class="hint" id="psStatus">Pronto.</span>
+      </div>
+      <div class="nota">Comandos destrutivos (rm, Remove-Item, format…) são bloqueados.</div>
+    </section>
+
+    <!-- ---------- CHAT OPENCODE (COMMS) ---------- -->
+    <section class="card wide" data-dept="comms" data-dica="Console SSE do GESTOR/OpenCode. Ctrl+Enter envia.">
+      <h2>💬 Console do Núcleo de Comando</h2>
+      <div class="msgs" id="msgs"></div>
+      <textarea id="chatIn" placeholder="Dê uma ordem ao GESTOR... ex.: crie um site de portfólio do zero"></textarea>
+      <div class="row">
+        <button id="chatSend">Executar ordem</button>
+        <span id="chatStatus" class="hint">Conectando ao OpenCode...</span>
+      </div>
+    </section>
+
+    <!-- ---------- NOVA ORDEM (COMANDO) ---------- -->
+    <section class="card wide" data-dept="comando" data-dica="Grava a ordem em jogo/ordens.md para o GESTOR executar.">
+      <h2>📝 Nova Ordem / Objetivo</h2>
+      <textarea id="ordem" placeholder="Ex.: criar a landing page do produto X e publicar"></textarea>
+      <div class="row">
+        <button id="enviar">Enviar ordem</button>
+        <span id="status2" class="hint">A ordem é gravada em jogo/ordens.md para o GESTOR executar.</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="foot">Atualização dinâmica a cada 3s • lendo jogo/estado.json e jogo/registro.md</div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   UTILIDADES BÁSICAS
+   ===================================================================== */
+const el  = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const pct = (v,max) => max ? clamp((Number(v||0)/max)*100, 0, 100) : 0;
+const num = (v) => Number(v||0).toLocaleString("pt-BR");
+
+/* =====================================================================
+   CAMPO DE ESTRELAS (preservado) + SCANLINES (CSS)
+   ===================================================================== */
+const cv = el("stars"), ctx = cv.getContext("2d");
+let stars = [];
+function montarEstrelas(){
+  cv.width = innerWidth; cv.height = innerHeight;
+  stars = Array.from({length:150}, () => ({
+    x: Math.random()*cv.width, y: Math.random()*cv.height,
+    z: Math.random()*1.6 + 0.3, s: Math.random()*1.6 + 0.3
+  }));
+}
+addEventListener("resize", montarEstrelas); montarEstrelas();
+let t = 0;
+(function loop(){
+  ctx.clearRect(0,0,cv.width,cv.height); t += 0.2;
+  for(const st of stars){
+    st.y += st.z*0.16;
+    if(st.y > cv.height){ st.y = 0; st.x = Math.random()*cv.width; }
+    ctx.globalAlpha = 0.3 + 0.6*Math.abs(Math.sin((t + st.x)*0.02));
+    ctx.fillStyle = st.z > 1.2 ? "#8fd8ff" : "#ffffff";
+    ctx.fillRect(st.x, st.y, st.s, st.s);
+  }
+  requestAnimationFrame(loop);
+})();
+
+/* =====================================================================
+   MODELOS DE DADOS
+   ===================================================================== */
+const IND = [
+  {key:"capacidade",   label:"⚙️ Capacidade",   max:3000, color:"#ffc857", dept:"engenharia", comp:"engenharia"},
+  {key:"suprimentos",  label:"📦 Suprimentos",  max:2000, color:"#39e6ff", dept:"logistica",  comp:"logistica"},
+  {key:"equipe",       label:"👥 Equipe",       max:600,  color:"#4dffa6", dept:"comms",      comp:"comms"},
+  {key:"eficiencia",   label:"📈 Eficiência",   max:100,  color:"#ff4d9d", dept:"comando",    comp:"comando"},
+  {key:"conhecimento", label:"🧠 Conhecimento", max:500,  color:"#b07be0", dept:"intel",      comp:"intel"}
+];
+const COR = {"ativo":"#4dffa6","aliado":"#4dffa6","parceiro":"#4dffa6","sem contato":"#7d93b8",
+  "neutro":"#7d93b8","desconhecida":"#39e6ff","hostil":"#ff4d9d","critico":"#ff4d9d","crítico":"#ff4d9d","inativo":"#7d93b8"};
+const STS = {"pendente":"#ffc857","em execução":"#39e6ff","executando":"#39e6ff","em andamento":"#39e6ff",
+  "concluída":"#4dffa6","concluida":"#4dffa6","bloqueada":"#ff4d9d"};
+
+/* compartimentos do casco (ideia 9) */
+const COMPARTIMENTOS = [
+  {id:"comando",    nome:"COMANDO",      icon:"🛡️", ind:"eficiencia"},
+  {id:"engenharia", nome:"ENGENHARIA",   icon:"⚙️", ind:"capacidade"},
+  {id:"intel",      nome:"INTEL / RECON",icon:"📡", ind:"conhecimento"},
+  {id:"logistica",  nome:"LOGÍSTICA",    icon:"📦", ind:"suprimentos"},
+  {id:"comms",      nome:"COMUNICAÇÕES", icon:"📶", ind:"equipe"}
+];
+const quarentena = {};   // estado local dos isolamentos
+
+/* estado global dos dados */
+let EST = {}, REG = "", RUMORES = [];
+
+/* =====================================================================
+   ENERGIA / PIPS (ideia 2 — simulação local de reroteamento)
+   ===================================================================== */
+const PIPS = 8;
+const ENERGIA = { poder: 80, aloc: {capacidade:3, suprimentos:2, equipe:2, eficiencia:2, conhecimento:1} };
+function totalPips(){ return Math.round((ENERGIA.poder/100) * (PIPS*IND.length)); } // pool total
+function usadoPips(){ return IND.reduce((s,c)=>s + (ENERGIA.aloc[c.key]||0), 0); }
+
+function recursos(){ const r = EST; const x = r.indicadores || r.recursos || {}; return x; }
+function semFor(p){ return p>=60 ? "s-ok" : (p>=35 ? "s-meio" : "s-ruim"); }
+
+/* =====================================================================
+   RENDER: INDICADORES COM PIPS
+   ===================================================================== */
+function renderIndicadores(){
+  const r = recursos();
+  el("recursos").innerHTML = IND.map(c => {
+    const real = Number(r[c.key]||0);
+    const realP = Math.round(pct(real, c.max));
+    const aloc = clamp(ENERGIA.aloc[c.key]||0, 0, PIPS);
+    const pips = Array.from({length:PIPS}, (_,k) =>
+      `<i class="pip ${k<aloc?"on":""}" data-key="${c.key}" data-k="${k}" title="alocar até ${k+1}"></i>`).join("");
+    return `<div class="mod ${aloc>0?"lit":"off"}" style="--c:${c.color}">
+      <div class="modTop">
+        <span class="sema ${semFor(realP)}"></span>
+        <span class="lbl">${c.label}</span>
+        <span class="val">${num(real)}</span>
+      </div>
+      <div class="pips">${pips}</div>
+      <div class="modInfo"><span>ALOC ${aloc}/${PIPS}</span><span>REAL ${realP}%</span></div>
+      <div class="bar">
+        <i style="width:${realP}%;background:${c.color};color:${c.color}"></i>
+        <b class="mark" style="left:${(aloc/PIPS)*100}%"></b>
+      </div>
+    </div>`;
+  }).join("");
+  el("energiaInfo").textContent = `PIPS ${usadoPips()}/${totalPips()} • REATOR ${ENERGIA.poder}%`;
+}
+/* clique nos pips — realoca energia entre módulos */
+el("recursos").addEventListener("click", (ev) => {
+  const pip = ev.target.closest(".pip"); if(!pip) return;
+  const key = pip.dataset.key, k = Number(pip.dataset.k);
+  const atual = ENERGIA.aloc[key]||0;
+  if(k+1 === atual) ENERGIA.aloc[key] = k;              // apaga o último pip aceso
+  else if(k+1 < atual) ENERGIA.aloc[key] = k+1;         // reduz até o ponto clicado
+  else if(usadoPips() < totalPips()) ENERGIA.aloc[key] = k+1; // acende se houver pool livre
+  renderIndicadores(); avaliarAlertas();
+});
+/* NORMALIZAR — devolve distribuição proporcional aos dados reais */
+function normalizarEnergia(){
+  ENERGIA.poder = 80; el("reator").value = 80;
+  const r = recursos();
+  IND.forEach(c => { ENERGIA.aloc[c.key] = clamp(Math.round(pct(r[c.key], c.max)/100 * PIPS), 0, PIPS); });
+  renderIndicadores(); renderReator(); avaliarAlertas();
+}
+el("btnNormalizar").addEventListener("click", normalizarEnergia);
+
+/* =====================================================================
+   RENDER: REATOR & SISTEMAS CRÍTICOS (ideia 8) + moral em cascata
+   ===================================================================== */
+let O2 = 100;
+function renderReator(){
+  const p = ENERGIA.poder;
+  el("reatorVal").textContent = p + "%";
+  const sobrecarga = p > 80;
+  el("avisoReator").classList.toggle("on", sobrecarga);
+  const r = recursos();
+  O2 = clamp(Math.round(p - 18 + pct(r.suprimentos,2000)*0.15), 0, 100);
+  const m = moralValor();
+  el("cEnergia").textContent = p + "%";
+  el("cO2").textContent = O2 + "%";
+  el("cMoral").textContent = clamp(Math.round(m*0.7 + O2*0.3),0,100) + "%";
+  return sobrecarga;
+}
+el("reator").addEventListener("input", () => {
+  ENERGIA.poder = Number(el("reator").value)||0;
+  renderIndicadores(); renderReator(); avaliarAlertas();
+});
+
+/* =====================================================================
+   RENDER: MORAL DA EQUIPE (ideia 6)
+   ===================================================================== */
+function moralValor(){
+  const r = recursos();
+  return clamp(Math.round(pct(r.eficiencia,100)*0.6 + pct(r.conhecimento,500)*0.4), 0, 100);
+}
+function renderMoral(){
+  const r = recursos();
+  const m = moralValor();
+  const risco = m<40 ? {t:"CRÍTICO — risco de insatisfação", c:"#ff5c5c"} :
+                (m<70 ? {t:"MODERADO — observar", c:"#ffc857"} : {t:"ESTÁVEL", c:"#4dffa6"});
+  el("moral").innerHTML = `
+    <div class="rel"><span>Moral geral</span>
+      <span style="font-family:Consolas,monospace;color:${risco.c}">${m}%</span></div>
+    <div class="bar"><i style="width:${m}%;background:${risco.c};color:${risco.c}"></i></div>
+    <div class="rel" style="margin-top:10px"><span>Eficiência (peso 60%)</span><span>${Math.round(pct(r.eficiencia,100))}%</span></div>
+    <div class="rel"><span>Conhecimento (peso 40%)</span><span>${Math.round(pct(r.conhecimento,500))}%</span></div>
+    <div class="nota">Risco de insatisfação: <b style="color:${risco.c}">${risco.t}</b></div>`;
+}
+
+/* =====================================================================
+   RENDER: COMPARTIMENTOS / CORTE DA NAVE (ideia 9)
+   ===================================================================== */
+function renderCompartimentos(){
+  const r = recursos();
+  el("compartimentos").innerHTML = COMPARTIMENTOS.map(c => {
+    const v = pct(r[c.ind], (IND.find(i=>i.key===c.ind)||{}).max || 100);
+    const cor = v>=60 ? "#4dffa6" : (v>=35 ? "#ffc857" : "#ff5c5c");
+    const q = !!quarentena[c.id];
+    return `<div class="comp ${q?"q":""}" style="border-left-color:${cor}">
+      <div class="cnome">${c.icon} ${c.nome}</div>
+      <div class="cval">SAÚDE ${Math.round(v)}% • ${q?"ISOLADO":"OPERANTE"}</div>
+      <div class="bar"><i style="width:${v}%;background:${cor};color:${cor}"></i></div>
+      <button class="cbtn ${q?"on":""}" data-comp="${c.id}">${q?"Reintegrar":"Isolar / Quarentena"}</button>
+    </div>`;
+  }).join("");
+}
+el("compartimentos").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".cbtn"); if(!b) return;
+  const id = b.dataset.comp;
+  quarentena[id] = !quarentena[id];
+  const c = COMPARTIMENTOS.find(x=>x.id===id);
+  termLog(`» compartimento ${c.nome} ${quarentena[id] ? "ISOLADO" : "REINTEGRADO"}`, "hl");
+  renderCompartimentos();
+});
+
+/* =====================================================================
+   RENDER: MAPA DE SETORES (ideia 3)
+   ===================================================================== */
+function renderMapa(){
+  const parc = EST.parceiros || EST.faccoes || {};
+  const nomes = Object.keys(parc);
+  const pos = [[110,62],[110,212],[510,62],[510,212]];
+  const nos = [{x:310,y:138,nome:"NÚCLEO DE COMANDO",tipo:"nucleo"}];
+  nomes.slice(0,4).forEach((n,i)=>{
+    nos.push({x:pos[i][0], y:pos[i][1], nome:n.toUpperCase(), tipo:"parceiro",
+              estado:String(parc[n]).toLowerCase()});
+  });
+  const bloqueados = [{x:520,y:138,nome:"SETOR K-7 (BLOQ.)"},{x:100,y:138,nome:"SETOR R-3 (BLOQ.)"}];
+
+  let svg = "";
+  // linhas de conexão a partir do núcleo
+  nos.slice(1).forEach(n => {
+    const ruim = /hostil|cr[ií]tico|inativo/.test(n.estado||"");
+    const at = /ativo|aliado|parceiro/.test(n.estado||"");
+    svg += `<line class="lig ${at?"at":""} ${ruim?"dead":""}" x1="310" y1="138" x2="${n.x}" y2="${n.y}"/>`;
+  });
+  bloqueados.forEach(b => {
+    svg += `<line class="lig dead" x1="310" y1="138" x2="${b.x}" y2="${b.y}"/>`;
+  });
+  // nós
+  svg += `<g><circle class="anel" cx="310" cy="138" r="30"/><circle class="nno" cx="310" cy="138" r="20"/>
+    <text class="maplbl" x="310" y="178">${nos[0].nome}</text></g>`;
+  nos.slice(1).forEach(n => {
+    const ruim = /hostil|cr[ií]tico|inativo/.test(n.estado||"");
+    const at = /ativo|aliado|parceiro/.test(n.estado||"");
+    const incerto = /sem contato|neutro|desconhec/.test(n.estado||"");
+    svg += `<g>
+      <circle class="noParceiro ${at?"at":""} ${ruim?"ruim":""} ${incerto?"blink":""}" cx="${n.x}" cy="${n.y}" r="13"/>
+      <text class="maplbl ${incerto?"dim":""}" x="${n.x}" y="${n.y+34}">${esc(n.nome)}</text></g>`;
+  });
+  bloqueados.forEach(b => {
+    svg += `<g>
+      <circle class="noblock" cx="${b.x}" cy="${b.y}" r="13"/>
+      <text class="maplbl dim" x="${b.x}" y="${b.y+34}">${b.nome}</text>
+      <text x="${b.x}" y="${b.y+5}" text-anchor="middle" fill="#ff5c5c" font-size="14" font-family="Consolas,monospace">✕</text></g>`;
+  });
+  el("svMapa").innerHTML = svg;
+}
+
+/* =====================================================================
+   RENDER: SONAR — medidores analógicos (ideia 10)
+   ===================================================================== */
+function renderGauges(){
+  const r = recursos();
+  el("gauges").innerHTML = IND.map(c => {
+    const v = pct(r[c.key], c.max);
+    const ang = -90 + v*1.8; // semicírculo -90°..+90°
+    return `<div class="gauge">
+      <svg viewBox="0 0 100 62" width="100%" height="52">
+        <path d="M8 56 A42 42 0 0 1 92 56" fill="none" stroke="#1d3350" stroke-width="5"/>
+        <path d="M8 56 A42 42 0 0 1 92 56" fill="none" stroke="${c.color}" stroke-width="5"
+              stroke-dasharray="${v*1.32} 400" opacity=".85"/>
+        <line x1="50" y1="56" x2="50" y2="20" stroke="#eaf7ff" stroke-width="2.4"
+              transform="rotate(${ang} 50 56)"/>
+        <circle cx="50" cy="56" r="3.4" fill="#eaf7ff"/>
+        <text x="50" y="61" text-anchor="middle" fill="#7d93b8" font-size="9" font-family="Consolas,monospace">${Math.round(v)}%</text>
+      </svg>
+      <span>${c.label.replace(/^\S+\s/,"")}</span>
+    </div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   RENDER: RUMORES / JANELAS DE OPORTUNIDADE (ideia 5)
+   ===================================================================== */
+function montarRumores(){
+  const r = recursos();
+  const parc = Object.keys(EST.parceiros || EST.faccoes || {});
+  const setores = (EST.ativos||[]).length + (EST.integracoes||[]).length + 8;
+  const tar = EST.tarefas || [];
+  const emExec = tar.filter(x=>/execu|andamento/i.test(String(x.status||""))).length;
+  RUMORES = [
+    {txt:`Varredura de reconhecimento concluída: ${setores} setores analisados.`, seg:120},
+    {txt:`Parceiro ${parc[0] || "—"}: ${(EST.parceiros||{})[parc[0]] || "sem contato"}.`, seg:90},
+    {txt:`Capacidade operacional em ${num(r.capacidade)}/3000 unidades.`, seg:150},
+    {txt:`Tarefas ativas: ${tar.length} • ${emExec} em execução.`, seg:75}
+  ];
+}
+function renderRumores(){
+  el("rumores").innerHTML = RUMORES.map((x,i) => {
+    const mm = String(Math.floor(x.seg/60)).padStart(2,"0");
+    const ss = String(x.seg%60).padStart(2,"0");
+    const exp = x.seg<=0;
+    return `<div class="rumor ${exp?"exp":""}">
+      <span style="font-size:16px">${exp?"⌛":"📣"}</span>
+      <span class="txt">${esc(x.txt)}</span>
+      <span class="jan">${exp?"JANELA EXPIRADA":"⏱ "+mm+":"+ss}</span>
+    </div>`;
+  }).join("");
+}
+setInterval(() => {
+  RUMORES.forEach(x => { x.seg -= 1; if(x.seg < -5) x.seg = 90 + Math.round(Math.random()*60); });
+  renderRumores();
+}, 1000);
+
+/* =====================================================================
+   RENDER: PARCEIROS / REPUTAÇÃO (ideia 7)
+   ===================================================================== */
+function renderParceiros(){
+  const parc = EST.parceiros || EST.faccoes || {};
+  const ks = Object.keys(parc);
+  if(!ks.length){ el("parceiros").innerHTML = `<div class="rel" style="opacity:.5">Nenhum parceiro registrado.</div>`; return; }
+  el("parceiros").innerHTML = ks.map(k => {
+    const v = String(parc[k]); const low = v.toLowerCase();
+    const c = COR[low] || "#7d93b8";
+    // confiança derivada do estado
+    let conf = 45;
+    if(/ativo|aliado|parceiro/.test(low)) conf = 90;
+    else if(/hostil|cr[ií]tico|inativo/.test(low)) conf = 15;
+    // saldo determinístico a partir do nome
+    let h = 0; for(const ch of k) h = (h*31 + ch.charCodeAt(0)) % 9973;
+    const saldo = 200 + (h % 1800);
+    return `<div class="rel">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:7px"></span>${esc(k)}</span>
+      <span class="rbar"><i style="width:${conf}%;background:${c};color:${c}"></i></span>
+      <span style="font-family:Consolas,monospace;font-size:12px;color:${c}">${esc(v)}</span>
+      <span style="font-family:Consolas,monospace;font-size:12px;color:var(--muted)">${saldo} cr</span>
+    </div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   RENDER: TAREFAS (ideia 14)
+   ===================================================================== */
+function renderTarefas(){
+  const tar = EST.tarefas || [];
+  el("tarefas").innerHTML = tar.length ? tar.map(x => {
+    const v = String(x.status||"pendente"), c = STS[v.toLowerCase()] || "#7d93b8";
+    const run = /execu|andamento/i.test(v) ? " run" : "";
+    const bloq = /bloq/i.test(v) ? " bloq" : "";
+    return `<div class="task${bloq}"><span class="tid">${esc(x.id||"")}</span>
+      <span class="ttitle">${esc(x.titulo||"")}</span>
+      <span class="tstatus${run}" style="color:${c};border-color:${c}">${esc(v)}</span></div>`;
+  }).join("") : `<div class="task" style="opacity:.5">Sem tarefas no momento.</div>`;
+}
+
+/* =====================================================================
+   RENDER: ATIVOS & INTEGRAÇÕES
+   ===================================================================== */
+function renderAtivos(){
+  const lista = (arr) => (arr && arr.length)
+    ? arr.map(x => `<li>${esc(x)}</li>`).join("")
+    : `<li style="opacity:.5">— nenhum —</li>`;
+  el("ativos").innerHTML = lista(EST.ativos || EST.modulos);
+  el("integracoes").innerHTML = lista(EST.integracoes || EST.tecnologias);
+}
+
+/* =====================================================================
+   RENDER: LOG DE TRANSMISSÕES (ideia 4)
+   ===================================================================== */
+function renderLog(md){
+  const linhas = String(md||"").split(/\r?\n/).filter(l => l.trim() !== "");
+  const agora = Date.now();
+  el("cronica").innerHTML = linhas.map((l,i) => {
+    const ts = new Date(agora - (linhas.length-1-i)*42000).toLocaleTimeString("pt-BR");
+    let cls = "", txt = l;
+    if(/^\s*#{1,6}\s+/.test(l)){ cls = "hd"; txt = l.replace(/^\s*#{1,6}\s+/,""); }
+    else if(/^\s*[-*]\s+/.test(l)){ txt = "• " + l.replace(/^\s*[-*]\s+/,""); }
+    return `<div class="tline ${cls}"><span class="ts">[${ts}]</span><span class="pre">»</span>` +
+           `<span>${esc(txt).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}</span></div>`;
+  }).join("");
+}
+
+/* =====================================================================
+   ALERTAS / MODO ALERTA (ideias 14 e 15)
+   ===================================================================== */
+function emExecucao(){ return (EST.tarefas||[]).some(x => /execu|andamento/i.test(String(x.status||""))); }
+function avaliarAlertas(){
+  const bloqueada = (EST.tarefas||[]).some(x => /bloq/i.test(String(x.status||"")));
+  const sobre = ENERGIA.poder > 80;
+  document.body.classList.toggle("alerta", bloqueada || sobre);
+  el("janelaBox").classList.toggle("urgente", emExecucao());
+}
+
+/* =====================================================================
+   RENDER GERAL
+   ===================================================================== */
+function render(est, registro){
+  EST = est || {}; REG = registro || "";
+  el("operacao").textContent = EST.operacao ?? "–";
+  el("status").textContent  = EST.status ?? "–";
+  el("modulo").textContent  = EST.modulo ?? "–";
+  renderIndicadores();
+  renderReator();
+  renderMoral();
+  renderCompartimentos();
+  renderMapa();
+  renderGauges();
+  renderParceiros();
+  renderTarefas();
+  renderAtivos();
+  renderLog(REG);
+  montarRumores();
+  renderRumores();
+  avaliarAlertas();
+}
+
+/* =====================================================================
+   CARREGAMENTO PERIÓDICO (3s) — preservado
+   ===================================================================== */
+async function carregar(){
+  try{
+    const [e,r] = await Promise.all([
+      fetch("/api/estado",{cache:"no-store"}).then(x=>x.json()),
+      fetch("/api/registro",{cache:"no-store"}).then(x=>x.text())
+    ]);
+    render(e,r);
+  }catch(err){ /* offline — mantém último estado */ }
+}
+
+/* =====================================================================
+   JANELA DE COMANDO (cronômetro, ideia 14)
+   ===================================================================== */
+let janelaSeg = 90;
+setInterval(() => {
+  janelaSeg -= 1; if(janelaSeg <= 0) janelaSeg = 90;
+  el("janela").textContent = janelaSeg;
+}, 1000);
+
+/* =====================================================================
+   ABAS POR DEPARTAMENTO / RBAC (ideia 12)
+   ===================================================================== */
+el("abas").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".aba"); if(!b) return;
+  const dept = b.dataset.dept;
+  [...el("abas").querySelectorAll(".aba")].forEach(x => x.classList.toggle("ativa", x === b));
+  [...document.querySelectorAll("#painel .card")].forEach(card => {
+    const d = card.dataset.dept;
+    const mostrar = (dept === "todos") || (d === dept);
+    card.classList.toggle("fora", !mostrar);
+    card.classList.toggle("ativa", dept !== "todos" && d === dept);
+  });
+});
+
+/* =====================================================================
+   MODO PLANEJAR (ideia 13) + dicas contextuais
+   ===================================================================== */
+el("btnPlanejar").addEventListener("click", () => {
+  const on = document.body.classList.toggle("planejar");
+  el("btnPlanejar").classList.toggle("ativo", on);
+  el("btnPlanejar").textContent = on ? "Planejar: ON" : "Planejar";
+  el("dica").textContent = on
+    ? "MODO PLANEJAR ATIVO — animações congeladas. Clique em um módulo para ver a dica."
+    : "Dica contextual: ative PLANEJAR e clique em um módulo para inspecionar.";
+});
+document.querySelectorAll("#painel .card").forEach(card => {
+  card.addEventListener("click", () => {
+    if(!document.body.classList.contains("planejar")) return;
+    if(card.dataset.dica) el("dica").textContent = "▸ " + card.dataset.dica;
+  });
+});
+
+/* =====================================================================
+   TERMINAL DE COMANDOS (ideia 11)
+   ===================================================================== */
+const TERM = el("term"), TERM_IN = el("termIn");
+const CMDS = ["help","ajuda","status","ativos","parceiros","tarefas","mapa","energia","rumores","limpar"];
+let hist = [], histIdx = -1, tabIdx = -1, tabPref = "";
+
+function termLog(txt, cls){
+  const d = document.createElement("div");
+  d.className = "tline " + (cls||"");
+  d.textContent = txt;
+  TERM.appendChild(d);
+  TERM.scrollTop = TERM.scrollHeight;
+}
+function cmdStatus(){
+  const r = recursos();
+  termLog(`operação ${EST.operacao||"–"} • status ${EST.status||"–"} • módulo ${EST.modulo||"–"}`, "hl");
+  IND.forEach(c => termLog(`  ${c.label}: ${num(r[c.key])}`));
+}
+function cmdMapa(){
+  const parc = Object.keys(EST.parceiros||{});
+  termLog("NÚCLEO DE COMANDO [operacional, aceso]", "hl");
+  parc.forEach(p => termLog(`  └─ ${p} (${(EST.parceiros||{})[p]})`));
+  termLog("  └─ SETOR K-7 [BLOQUEADO]");
+  termLog("  └─ SETOR R-3 [BLOQUEADO]");
+  termLog("  ▲ frota/prazo avançando pela rota principal", "hl");
+}
+function cmdEnergia(){
+  const total = totalPips(), usado = usadoPips();
+  termLog(`reator ${ENERGIA.poder}% ${ENERGIA.poder>80?"[SOBRECARGA]":""} • pips ${usado}/${total}`, "hl");
+  IND.forEach(c => termLog(`  ${c.label}: aloc ${ENERGIA.aloc[c.key]||0}/${PIPS}`));
+}
+function runCmd(raw){
+  const t = String(raw||"").trim();
+  if(!t) return;
+  termLog("comando› " + t, "echo");
+  const [c, ...resto] = t.split(/\s+/);
+  switch(c.toLowerCase()){
+    case "help": case "ajuda":
+      termLog("Comandos: " + CMDS.join(" • "), "hl");
+      termLog("Tab autocompleta • ↑/↓ histórico");
+      break;
+    case "status":  cmdStatus(); break;
+    case "ativos":
+      termLog("ATIVOS: " + ((EST.ativos||[]).join(", ") || "nenhum"), "hl");
+      termLog("INTEGRAÇÕES: " + ((EST.integracoes||[]).join(", ") || "nenhuma"));
+      break;
+    case "parceiros": {
+      const parc = EST.parceiros||{}; const ks = Object.keys(parc);
+      if(!ks.length) termLog("Nenhum parceiro registrado.");
+      ks.forEach(k => termLog(`  ${k} → ${parc[k]}`, "hl"));
+      break;
+    }
+    case "tarefas": {
+      const tar = EST.tarefas||[];
+      if(!tar.length) termLog("Sem tarefas.");
+      tar.forEach(x => termLog(`  [${x.id}] ${x.titulo} — ${x.status}`, /bloq/i.test(String(x.status))?"err":""));
+      break;
+    }
+    case "mapa": cmdMapa(); break;
+    case "energia": cmdEnergia(); break;
+    case "rumores": RUMORES.forEach(x => termLog("  📣 " + x.txt, "hl")); break;
+    case "limpar": TERM.innerHTML = ""; break;
+    default: termLog(`comando desconhecido: ${c} (use help)`, "err");
+  }
+  if(resto.length) termLog("  (argumentos ignorados: " + resto.join(" ") + ")");
+}
+TERM_IN.addEventListener("keydown", (ev) => {
+  if(ev.key === "Tab"){
+    ev.preventDefault();
+    const pref = TERM_IN.value.trim().toLowerCase();
+    if(pref !== tabPref){ tabPref = pref; tabIdx = -1; }
+    const m = CMDS.filter(c => c.startsWith(pref));
+    if(!m.length) return;
+    tabIdx = (tabIdx + 1) % m.length;
+    TERM_IN.value = m[tabIdx];
+  } else if(ev.key === "ArrowUp"){
+    ev.preventDefault();
+    if(!hist.length) return;
+    histIdx = histIdx <= 0 ? hist.length-1 : histIdx-1;
+    TERM_IN.value = hist[histIdx];
+  } else if(ev.key === "ArrowDown"){
+    ev.preventDefault();
+    if(!hist.length) return;
+    histIdx = (histIdx + 1) % hist.length;
+    TERM_IN.value = hist[histIdx];
+  } else if(ev.key === "Enter"){
+    ev.preventDefault();
+    const v = TERM_IN.value;
+    if(v.trim()){ hist.push(v.trim()); histIdx = hist.length; }
+    runCmd(v);
+    TERM_IN.value = ""; tabPref = ""; tabIdx = -1;
+  }
+});
+termLog("NÚCLEO DE COMANDO — terminal local pronto. Digite help.", "hl");
+
+/* =====================================================================
+   TERMINAL POWERSHELL — executa de verdade no processo principal (/api/ps)
+   A saída chega em streaming SSE (eventos delta/error/done), mesma técnica
+   usada pelo console do OpenCode. Depende do app Electron em execução.
+   ===================================================================== */
+const PS_OUT = el("psOut"), PS_IN = el("psIn"), PS_RUN = el("psRun"), PS_STATUS = el("psStatus");
+let psHist = [], psHistIdx = -1, psRodando = false;
+const PS_MSG_OFF = "[terminal indisponível — execute pelo app Electron (npm start)]";
+
+/* escreve no output; cls opcional colore a linha (echo/erro/meta) */
+function psWrite(txt, cls){
+  const s = document.createElement("span");
+  if(cls) s.className = cls;
+  s.textContent = txt;
+  PS_OUT.appendChild(s);
+  PS_OUT.scrollTop = PS_OUT.scrollHeight;
+}
+function psLimpar(){ PS_OUT.innerHTML = ""; }
+
+/* estado "executando...": desabilita/reabilita a entrada */
+function psOcupado(on){
+  psRodando = on;
+  PS_IN.disabled = on;
+  if(PS_RUN) PS_RUN.disabled = on;
+  PS_STATUS.textContent = on ? "executando..." : "Pronto.";
+}
+
+/* interpreta um bloco SSE (mesmo formato usado em /api/chat) */
+function psSSE(raw){
+  let ev = "", data = "";
+  for(const line of raw.split("\n")){
+    if(line.startsWith("event:")) ev = line.slice(6).trim();
+    else if(line.startsWith("data:")) data += line.slice(5).trim();
+  }
+  let j = {}; try{ j = JSON.parse(data || "{}"); }catch{}
+  if(ev === "delta"){                       // cada trecho é ANEXADO ao output
+    PS_OUT.appendChild(document.createTextNode(j.d || ""));
+    PS_OUT.scrollTop = PS_OUT.scrollHeight;
+  }
+  else if(ev === "error"){                  // bloqueio/erro em vermelho/âmbar
+    psWrite("\n[erro: " + (j.message || "") + "]\n", "psErr");
+  }
+  else if(ev === "done"){                    // linha discreta com o código de saída
+    const c = (j.code === null || j.code === undefined) ? "—" : j.code;
+    psWrite("\n[código de saída: " + c + "]\n", "psMeta");
+  }
+}
+
+async function psExecutar(){
+  if(psRodando) return;
+  const cmd = PS_IN.value;
+  if(!cmd.trim()) return;
+  PS_IN.value = "";
+  psHist.push(cmd.trim()); psHistIdx = psHist.length;
+  psWrite("PS> " + cmd + "\n", "psEcho");   // ecoa o comando
+  psOcupado(true);
+  try{
+    const resp = await fetch("/api/ps", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cmd })
+    });
+    if(!resp.ok){
+      if(resp.status >= 400 && resp.status < 600){
+        // erro HTTP real (4xx/5xx): mensagem precisa, não "indisponível"
+        psWrite("[erro: HTTP " + resp.status + "]\n", "psErr");
+      } else {
+        psWrite(PS_MSG_OFF + "\n", "psErr");
+      }
+    } else if(!resp.body){
+      // resposta OK sem corpo em stream: tratamos como indisponível
+      psWrite(PS_MSG_OFF + "\n", "psErr");
+    } else {
+      const reader = resp.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while((i = buf.indexOf("\n\n")) >= 0){
+          const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+          if(raw.trim()) psSSE(raw);
+        }
+      }
+    }
+  }catch(e){
+    // rota inexistente / servidor não atendendo (ex.: abriu o HTML fora do Electron)
+    psWrite(PS_MSG_OFF + "\n", "psErr");
+  }
+  psOcupado(false);
+}
+
+/* atalhos: Enter executa, ↑/↓ histórico, Ctrl+L limpa a tela */
+PS_IN.addEventListener("keydown", (ev) => {
+  if(ev.key === "Enter"){ ev.preventDefault(); psExecutar(); }
+  else if(ev.key === "ArrowUp"){
+    ev.preventDefault();
+    if(!psHist.length) return;
+    psHistIdx = psHistIdx <= 0 ? psHist.length - 1 : psHistIdx - 1;
+    PS_IN.value = psHist[psHistIdx];
+  } else if(ev.key === "ArrowDown"){
+    ev.preventDefault();
+    if(!psHist.length) return;
+    psHistIdx = (psHistIdx + 1) % psHist.length;
+    PS_IN.value = psHist[psHistIdx];
+  } else if(ev.ctrlKey && (ev.key === "l" || ev.key === "L")){
+    ev.preventDefault(); psLimpar();
+  }
+});
+if(PS_RUN) PS_RUN.addEventListener("click", psExecutar);
+el("psLimpar").addEventListener("click", psLimpar);
+
+psWrite("PowerShell pronto. Comandos destrutivos são bloqueados pela política do projeto.\n", "psMeta");
+
+/* =====================================================================
+   NOVA ORDEM → POST /api/ordem (preservado)
+   ===================================================================== */
+el("enviar").addEventListener("click", async () => {
+  const text = el("ordem").value.trim(), st = el("status2"), btn = el("enviar");
+  if(!text){ st.textContent = "Escreva uma ordem primeiro."; st.className = "hint"; return; }
+  btn.disabled = true; st.textContent = "Enviando..."; st.className = "hint";
+  try{
+    const res = await fetch("/api/ordem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    const j = await res.json();
+    if(j.ok){ st.textContent = "✔ Ordem registrada em jogo/ordens.md. No OpenCode, peça: \"GESTOR, leia jogo/ordens.md e execute\"."; st.className = "ok"; el("ordem").value = ""; }
+    else { st.textContent = "Falha: " + (j.erro||"erro"); st.className = "hint"; }
+  }catch(e){ st.textContent = "Servidor offline."; st.className = "hint"; }
+  btn.disabled = false;
+});
+
+/* =====================================================================
+   CONSOLE OPENCODE — SSE (preservado)
+   ===================================================================== */
+const msgsEl = el("msgs");
+function addMsg(role, text){
+  const d = document.createElement("div");
+  d.className = "msg " + role;
+  d.textContent = text || "";
+  msgsEl.appendChild(d);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  return d;
+}
+async function checarStatus(){
+  try{
+    const s = await fetch("/api/chat/status",{cache:"no-store"}).then(r=>r.json());
+    const st = el("chatStatus");
+    if(s.opencode){ st.textContent = "OpenCode conectado • sessão " + String(s.sessao||"").slice(0,12); st.className = "ok"; }
+    else { st.textContent = "OpenCode: " + (s.erro || "conectando..."); st.className = "hint"; }
+  }catch{ el("chatStatus").textContent = "OpenCode: servidor offline"; el("chatStatus").className = "hint"; }
+}
+function tratarSSE(raw, bolha){
+  let ev = "", data = "";
+  for(const line of raw.split("\n")){
+    if(line.startsWith("event:")) ev = line.slice(6).trim();
+    else if(line.startsWith("data:")) data += line.slice(5).trim();
+  }
+  let j = {}; try{ j = JSON.parse(data || "{}"); }catch{}
+  if(ev === "delta"){ bolha.textContent += j.d || ""; }
+  else if(ev === "error"){ bolha.textContent += "\n[erro: " + (j.message || "") + "]"; }
+  else if(ev === "done"){ bolha.classList.add("done"); }
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+async function enviarChat(){
+  const text = el("chatIn").value.trim();
+  if(!text) return;
+  el("chatIn").value = "";
+  addMsg("user", text);
+  const bolha = addMsg("bot", "");
+  el("chatSend").disabled = true;
+  el("chatStatus").textContent = "executando...";
+  el("chatStatus").className = "hint";
+  try{
+    const resp = await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    if(!resp.ok || !resp.body){ bolha.textContent = "[erro: HTTP " + resp.status + "]"; }
+    else{
+      const reader = resp.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while((i = buf.indexOf("\n\n")) >= 0){
+          const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+          if(raw.trim()) tratarSSE(raw, bolha);
+        }
+      }
+    }
+  }catch(e){ bolha.textContent += "\n[erro: " + e.message + "]"; }
+  el("chatSend").disabled = false;
+  checarStatus();
+  carregar();
+}
+el("chatSend").addEventListener("click", enviarChat);
+el("chatIn").addEventListener("keydown", (e) => { if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); enviarChat(); } });
+checarStatus();
+setInterval(checarStatus, 5000);
+
+/* =====================================================================
+   CICLO PRINCIPAL (3s) — preservado
+   ===================================================================== */
+carregar();
+setInterval(carregar, 3000);
+</script>
+</body>
+</html>

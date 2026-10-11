@@ -1,0 +1,20 @@
+# Dependências
+node_modules/
+app/node_modules/
+
+# Builds e caches
+dist/
+out/
+.cache/
+*.tsbuildinfo
+
+# Logs e temporários
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Ambiente
+.env
+.env.*
+!.env.example

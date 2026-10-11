@@ -1,0 +1,31 @@
+{
+  "operacao": "OP-002",
+  "modulo": "Núcleo de Comando",
+  "status": "operacional",
+  "indicadores": {
+    "capacidade": 1000,
+    "suprimentos": 500,
+    "equipe": 120,
+    "eficiencia": 82,
+    "conhecimento": 180
+  },
+  "ativos": [
+    "Núcleo de Comando",
+    "Painel HUD (Space Dungeon)",
+    "Terminal de Comando (Duskers)",
+    "Sonar / Radar de Incerteza"
+  ],
+  "integracoes": [
+    "OpenCode (agente GESTOR)",
+    "Servidor local do painel"
+  ],
+  "parceiros": {
+    "Estação Perdida": "sem contato"
+  },
+  "tarefas": [
+    { "id": "T-001", "titulo": "Inicialização do sistema", "status": "concluída", "responsavel": "Núcleo de Comando" },
+    { "id": "T-002", "titulo": "Varredura de reconhecimento: jogos space dungeon", "status": "concluída", "responsavel": "servo-busca" },
+    { "id": "T-003", "titulo": "Reconstruir interface do painel (estética space dungeon)", "status": "concluída", "responsavel": "servo-construcao" },
+    { "id": "T-004", "titulo": "Inspeção e teste da nova interface", "status": "em execução", "responsavel": "servo-revisao" }
+  ]
+}

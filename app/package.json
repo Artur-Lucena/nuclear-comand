@@ -1,0 +1,21 @@
+{
+  "name": "imperio-app",
+  "version": "1.0.0",
+  "description": "Império — simulador de gerenciamento (app desktop)",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true,
+    "msgpackr-extract@3.0.4": true
+  },
+  "dependencies": {
+    "@opencode/client": "^2.0.26"
+  }
+}
