@@ -13,7 +13,9 @@ let mainWindow = null;
 let baseUrl = null;
 
 // ---------------------------------------------------------------- OpenCode
-const oc = { pronto: false, client: null, session: null, erro: null };
+// modelo: modelo do COMANDANTE escolhido pelo usuário (null = padrão do projeto).
+// Formato: { providerID, modelID, name }.
+const oc = { pronto: false, client: null, session: null, erro: null, modelo: null };
 const pendentes = new Map(); // sessionID -> { nomes, onDelta, tool, done, fail }
 
 async function iniciarOpenCode() {
@@ -118,7 +120,112 @@ function rotaChat(req, res) {
 
 function rotaStatus(req, res) {
   res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-  res.end(JSON.stringify({ opencode: oc.pronto, sessao: oc.session ? oc.session.id : null, erro: oc.erro }));
+  res.end(JSON.stringify({ opencode: oc.pronto, sessao: oc.session ? oc.session.id : null, erro: oc.erro, modelo: oc.modelo }));
+}
+
+// ---------------------------------------------------------------- Modelos do comandante
+// Normaliza a lista de modelos/provedores do OpenCode SEM depender da forma exata do
+// retorno (confirmado por probe-modelos.mjs: { location, data: [...] }). Aceita também
+// array cru e envelopes alternativos (.models / .providers) por segurança.
+function listaDe(x, ...chaves) {
+  if (Array.isArray(x)) return x;
+  if (x && typeof x === "object") {
+    for (const k of chaves) if (Array.isArray(x[k])) return x[k];
+    if (Array.isArray(x.data)) return x.data;
+  }
+  return [];
+}
+
+function normalizarModelos(brutoModelos, brutoProvedores) {
+  const modelos = listaDe(brutoModelos, "models", "data");
+  const provedores = listaDe(brutoProvedores, "providers", "data");
+  const nomeDoProvedor = new Map();
+  for (const p of provedores) {
+    const pid = p?.providerID ?? p?.id;
+    if (pid) nomeDoProvedor.set(pid, p?.name ?? pid);
+  }
+  return modelos
+    .map((m) => {
+      const providerID = m?.providerID ?? m?.provider?.id ?? "";
+      const modelID = m?.modelID ?? m?.id ?? "";
+      const nome = m?.name ?? m?.modelID ?? m?.id ?? modelID;
+      return {
+        id: providerID && modelID ? `${providerID}/${modelID}` : modelID,
+        providerID,
+        modelID,
+        nome,
+        provedor: nomeDoProvedor.get(providerID) ?? providerID,
+      };
+    })
+    .filter((m) => m.modelID);
+}
+
+// Busca modelos + provedores no serviço local (best-effort nos provedores).
+async function listarModelos() {
+  const location = { directory: PROJETO_DIR };
+  const [modelosBrutos, provedoresBrutos] = await Promise.all([
+    oc.client.model.list({ location }),
+    oc.client.provider.list({ location }).catch(() => null),
+  ]);
+  return normalizarModelos(modelosBrutos, provedoresBrutos);
+}
+
+// GET /api/modelos -> { ok, atual, modelos, erro } (sempre HTTP 200)
+async function rotaModelos(req, res) {
+  const responder = (obj) => {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    res.end(JSON.stringify(obj));
+  };
+  if (!oc.pronto || !oc.client) {
+    return responder({ ok: false, atual: oc.modelo, modelos: [], erro: "OpenCode indisponível: " + (oc.erro || "não conectado") });
+  }
+  try {
+    const modelos = await listarModelos();
+    responder({ ok: true, atual: oc.modelo, modelos, erro: null });
+  } catch (e) {
+    responder({ ok: false, atual: oc.modelo, modelos: [], erro: String(e?.message || e) });
+  }
+}
+
+// POST /api/modelo  corpo { providerID, modelID } -> troca o modelo da sessão do comandante.
+// A API da sessão espera { model: { id, providerID } } — NÃO "modelID" (confirmado no probe).
+function rotaModelo(req, res) {
+  let body = "";
+  req.on("data", (c) => { body += c; if (body.length > 1e5) req.destroy(); });
+  req.on("end", async () => {
+    const responder = (obj) => {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      res.end(JSON.stringify(obj));
+    };
+
+    let dados = {};
+    try { dados = JSON.parse(body || "{}"); } catch {}
+    const providerID = String(dados.providerID ?? "").trim();
+    const modelID = String(dados.modelID ?? dados.id ?? "").trim();
+    if (!providerID || !modelID) {
+      return responder({ ok: false, erro: "providerID/modelID obrigatórios" });
+    }
+    if (!oc.pronto || !oc.client || !oc.session) {
+      return responder({ ok: false, erro: "OpenCode indisponível: " + (oc.erro || "não conectado") });
+    }
+
+    try {
+      // nome de exibição (best-effort) a partir da lista real de modelos
+      let name = modelID;
+      try {
+        const modelos = await listarModelos();
+        const achado = modelos.find((m) => m.providerID === providerID && m.modelID === modelID);
+        if (achado && achado.nome) name = achado.nome;
+      } catch {}
+
+      await oc.client.session.switchModel({ sessionID: oc.session.id, model: { id: modelID, providerID } });
+
+      oc.modelo = { providerID, modelID, name };
+      responder({ ok: true, atual: oc.modelo });
+    } catch (e) {
+      responder({ ok: false, erro: String(e?.message || e) });
+    }
+  });
 }
 
 // ---------------------------------------------------------------- Terminal PowerShell
@@ -310,7 +417,7 @@ function montarMenu() {
 
 app.whenReady().then(() => {
   // 1) sobe o painel local
-  startServer({ dir: JOGO_DIR, portStart: 5173, routes: { "/api/chat": rotaChat, "/api/chat/status": rotaStatus, "/api/ps": rotaPowerShell } }, (port) => {
+  startServer({ dir: JOGO_DIR, portStart: 5173, routes: { "/api/chat": rotaChat, "/api/chat/status": rotaStatus, "/api/ps": rotaPowerShell, "/api/modelos": rotaModelos, "/api/modelo": rotaModelo } }, (port) => {
     if (!port) { console.error("Não foi possível iniciar o servidor do painel."); app.quit(); return; }
     criarJanela(port);
     montarMenu();

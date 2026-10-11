@@ -2,22 +2,18 @@
   "operacao": "OP-006",
   "modulo": "Núcleo de Comando",
   "status": "operacional",
-  "indicadores": {
-    "capacidade": 1000,
-    "suprimentos": 500,
-    "equipe": 120,
-    "eficiencia": 90,
-    "conhecimento": 180
-  },
   "ativos": [
     "Núcleo de Comando",
-    "Painel minimalista (single-file)",
+    "Interface IDE idle (single-file)",
+    "Seletor de modelo do comandante",
     "Terminal PowerShell (integrado)"
   ],
   "integracoes": [
     "OpenCode (agente GESTOR)",
     "Servidor local do painel",
-    "PowerShell (child_process)"
+    "PowerShell (child_process)",
+    "Troca dinâmica de provedores/modelos (POST /api/modelo)",
+    "Anthropic/Claude (aguardando login do operador)"
   ],
   "parceiros": {
     "Estação Perdida": "sem contato"
@@ -32,8 +28,9 @@
     { "id": "T-007", "titulo": "Endurecer guarda do terminal (contornos óbvios)", "status": "pendente", "responsavel": "servo-construcao" },
     { "id": "T-008", "titulo": "Minimalizar a interface (princípios min-maxing)", "status": "concluída", "responsavel": "servo-construcao" },
     { "id": "T-009", "titulo": "Inspecionar a interface minimalista", "status": "concluída", "responsavel": "servo-revisao" },
-    { "id": "T-010", "titulo": "Recon: padrões de UI (IDE + idle game)", "status": "em execução", "responsavel": "servo-busca" },
-    { "id": "T-011", "titulo": "Reconstruir interface como IDE idle (chat no centro)", "status": "pendente", "responsavel": "servo-construcao" },
-    { "id": "T-012", "titulo": "Inspecionar a interface IDE idle", "status": "pendente", "responsavel": "servo-revisao" }
+    { "id": "T-010", "titulo": "Recon: padrões de UI (IDE + idle game)", "status": "concluída", "responsavel": "servo-busca" },
+    { "id": "T-011", "titulo": "Reconstruir interface como IDE idle (chat no centro)", "status": "concluída", "responsavel": "servo-construcao" },
+    { "id": "T-012", "titulo": "Inspecionar a interface IDE idle", "status": "concluída", "responsavel": "servo-revisao" },
+    { "id": "T-013", "titulo": "Ativar Claude (Anthropic) como modelo do comandante", "status": "pendente", "responsavel": "Operador" }
   ]
 }

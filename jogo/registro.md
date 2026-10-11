@@ -94,3 +94,40 @@ Electron; a porta 5173 estava ocupada por um processo órfão de sessão anterio
 
 > ℹ️ A interface só reflete a mudança após **recarregar** o painel no app (ou reiniciar o
 > Electron se o processo estiver servindo a versão antiga em memória).
+
+## OP-006 — Interface IDE idle + modelos do comandante
+
+Ordem recebida: a interface minimalista estava feia; queria estética parecida (dark sóbria), porém com
+abordagem de game — **uma espécie de IDE idle** — com **chat principal comandando os servo drones** rumo ao
+objetivo. Ordem complementar: manter a aba de **registro** no estilo anterior, **remover os indicadores**
+("não têm propósito") e permitir **modelos extras** (Claude/Cursor) para o comandante.
+
+**servo-busca** (T-010) entregou o spec de shell IDE (VS Code: activity bar 48px, lateral 300px, abas 35px,
+painel 35% com handle, status 22px) + padrões de HUD idle sóbrios (dots, progresso, deltas, pulse único) e
+tokens na paleta atual. **servo-construcao** reescreveu `jogo/interface.html` (985 linhas, single-file, zero
+dependências): shell de IDE em tela cheia, unidade principal é o **chat do GESTOR** (SSE real, indicador de
+digitando, Ctrl+Enter, histórico), lateral com **3 drones** (busca/construção/revisão; dot de estado, pulse
+quando trabalhando, clique insere o nome no chat) e **fila de tarefas** com progresso, abas `gestor.chat` /
+`registro` (estilo anterior preservado) / `rede` / `ordens`, terminal PowerShell íntegro (redimensionável,
+Ctrl+`` ` ``) e **seletor de modelo do comandante** (dropdown com busca, lê `/api/modelos`, grava
+`/api/modelo`). **Indicadores removidos da interface e do `estado.json`.**
+
+**servo-construcao** também alterou `app/main.js` (frente B): rotas `GET /api/modelos` (HTTP 200 mesmo em
+falha, normaliza envelope `{location,data}` do cliente) e `POST /api/modelo` (valida e traduz para
+`model:{id,providerID}` exigido pela API), e `modelo` em `/api/chat/status`. Probes empíricos
+(`app/probe-modelos.mjs`, `app/probe-switch.mjs`) comprovaram a forma real da API, inclusive que
+`switchModel` **exige a chave `id`** (não `modelID`) — bug capturado antes de chegar ao front.
+
+**servo-revisao** (T-012): **APROVADO COM RESSALVAS** — 15/15 checklist, testes reais (node --check, servidor
+HTTP 200, probes, guarda-corpo do terminal). Ressalva D-01 (scroll da aba registro) e O-01 (indicadores ainda
+no `estado.json`) — **corrigidas pelo GESTOR** (`.log` com `max-height:300px;overflow:auto` e `#regTab`
+`overflow:auto`; bloco `indicadores` removido).
+
+**Descobertas sobre modelos** (pesquisa direta no catálogo e nas 229 integrações do serviço local):
+- **Claude (Anthropic)**: suportado nativamente — integração `anthropic`, modelos `claude-opus-5-5`,
+  `claude-sonnet-5-5`, etc. Falta apenas autenticar.
+- **Cursor**: **NÃO existe** integração/provedor no OpenCode V2 (nem nos 226 provedores do catálogo) — não há
+  como usá-lo diretamente. Alternativas: GitHub Copilot (OAuth) ou provedor custom OpenAI-compatible via gateway.
+
+Próximo passo (T-013 — responsável: Operador): `opencode auth login anthropic` e reiniciar o app para
+recarregar a interface/rotas novas.

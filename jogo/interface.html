@@ -3,149 +3,498 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Núcleo de Comando</title>
+<title>Núcleo de Comando — IDE de Operação</title>
 <style>
-  :root{--bg:#0a0b0e;--panel:#0f1115;--line:#1c1f26;--line2:#262a33;--ink:#e6e8ec;--muted:#8b9099;--accent:#4f8cff;--ok:#3fb950;--bad:#d64545}
+  :root{
+    --bg:#0a0b0e; --painel:#0f1115; --painel2:#151a22; --linha:#1c1f26; --linha2:#262a33;
+    --ink:#e6e8ec; --muted:#8b9099; --acento:#4f8cff; --ok:#3fb950; --alerta:#d29922; --erro:#d64545;
+    --drone-busca:#4f8cff; --drone-construcao:#a371f7; --drone-revisao:#39c5cf;
+    --topo:32px; --ativ:48px; --lateral:300px; --abas:35px; --rodape:22px;
+  }
   *{box-sizing:border-box}
-  html,body{margin:0}
-  body{background:var(--bg);color:var(--ink);font-family:system-ui,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;padding:36px 20px 72px}
-  .wrap{max-width:860px;margin:0 auto}
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{
+    background:var(--bg); color:var(--ink); font-size:13px; line-height:1.5;
+    font-family:system-ui,"Segoe UI",sans-serif; display:flex; flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
   .mono{font-family:Consolas,ui-monospace,monospace}
-  .lbl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
-  .hint{color:var(--muted);font-size:12px}
-  .ok{color:var(--ok);font-size:12px}
-  .head{display:flex;flex-direction:column;gap:6px;margin-bottom:26px}
-  .headTop{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  h1{font-size:16px;font-weight:600;letter-spacing:4px;margin:0}
-  .live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
-  .live i{width:7px;height:7px;border-radius:50%;background:var(--ok)}
-  .meta{color:var(--muted);font-size:12.5px}
-  section{padding:22px 0;border-top:1px solid var(--line)}
-  section>.lbl{display:block;margin-bottom:14px}
-  .inds{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
-  @media(max-width:640px){.inds{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  .ind .n{font-size:20px;margin-top:2px}
-  .track{height:2px;background:var(--line2);margin-top:8px}
-  .track i{display:block;height:2px;background:var(--accent)}
-  .task{display:flex;align-items:center;gap:12px;padding:8px 0}
-  .task+.task{border-top:1px solid var(--line)}
-  .tid{color:var(--muted);font-size:12px;min-width:56px}
-  .ttitle{flex:1}
-  .pill{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;border:1px solid var(--line2);border-radius:20px;padding:2px 10px;color:var(--muted)}
-  .pill.run{color:var(--accent);border-color:var(--accent)}
+  .lbl{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+  .vazio{color:var(--muted);font-size:12px;padding:8px 0}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--linha2);border:2px solid var(--bg);border-radius:6px}
+  button{font-family:inherit}
+  input,textarea{font-family:inherit;color:var(--ink);background:var(--painel2);border:1px solid var(--linha2);border-radius:4px;outline:none}
+  input:focus,textarea:focus{border-color:var(--acento)}
+  ::placeholder{color:#5d636e}
+
+  /* ---------------------------------------------------------- barra de título */
+  .topo{
+    flex:0 0 var(--topo); height:var(--topo); display:flex; align-items:center; gap:12px;
+    padding:0 10px; background:var(--painel); border-bottom:1px solid var(--linha);
+    position:relative; z-index:30; min-width:0;
+  }
+  .tNome{font-size:12px;font-weight:600;letter-spacing:2.4px;white-space:nowrap}
+  .topoSep{width:1px;height:16px;background:var(--linha2)}
+  .topoMeta{font-size:11px;color:var(--muted);white-space:nowrap}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .live i{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulso 2.4s infinite}
+  .topoFlex{flex:1 1 auto;min-width:8px}
+  .iconBtn{
+    display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;
+    background:transparent;border:1px solid transparent;border-radius:4px;color:var(--muted);cursor:pointer;
+    transition:color 130ms,background 130ms;
+  }
+  .iconBtn:hover{color:var(--ink);background:var(--painel2)}
+
+  /* seletor de modelo do comandante */
+  .modWrap{position:relative}
+  .modBtn{
+    display:inline-flex;align-items:center;gap:8px;height:24px;padding:0 10px;cursor:pointer;
+    background:var(--painel2);border:1px solid var(--linha2);border-radius:4px;color:var(--ink);
+    max-width:280px;transition:border-color 130ms;
+  }
+  .modBtn:hover{border-color:var(--acento)}
+  .modBtn .rot{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
+  .modBtn .nome{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+  .modBtn .caret{font-size:9px;color:var(--muted)}
+  .modMenu{
+    position:absolute;top:28px;right:0;width:340px;max-height:60vh;display:flex;flex-direction:column;
+    background:var(--painel);border:1px solid var(--linha2);border-radius:6px;z-index:40;
+    box-shadow:0 12px 28px rgba(0,0,0,.5);
+  }
+  .modMenu input{margin:8px;padding:6px 8px;font-size:12px}
+  .modLista{overflow:auto;padding:0 4px 6px;min-height:0}
+  .mGrupo{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding:8px 8px 4px}
+  .mItem{
+    display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:6px 8px;cursor:pointer;
+    background:transparent;border:0;border-radius:4px;color:var(--ink);font-size:12.5px;
+  }
+  .mItem:hover{background:var(--painel2)}
+  .mItem .mNome{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mItem .mCheck{color:var(--acento);font-size:11px}
+  .mItem.atual{color:var(--acento)}
+  .mMsg{color:var(--muted);font-size:12px;padding:10px 12px}
+
+  /* ---------------------------------------------------------------- corpo */
+  .corpo{flex:1 1 auto;display:flex;min-height:0;min-width:0}
+
+  .ativ{
+    flex:0 0 var(--ativ); width:var(--ativ); display:flex; flex-direction:column; align-items:center;
+    gap:2px; padding-top:6px; background:var(--painel); border-right:1px solid var(--linha);
+  }
+  .atvItem{
+    width:46px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    background:transparent;border:0;border-left:2px solid transparent;color:var(--muted);
+    transition:color 130ms,background 130ms;
+  }
+  .atvItem:hover{color:var(--ink);background:var(--painel2)}
+  .atvItem.ativo{color:var(--ink);border-left-color:var(--acento);background:var(--painel2)}
+
+  .lateral{
+    flex:0 0 var(--lateral); width:var(--lateral); min-width:0; background:var(--painel);
+    border-right:1px solid var(--linha); display:flex; flex-direction:column; overflow:auto;
+  }
+  .lateral.oculta{display:none}
+  .sideView{display:none;padding:12px}
+  .sideView.ativo{display:block}
+  .sideHead{margin:4px 0 10px}
+  .sideHead:not(:first-child){margin-top:20px;padding-top:14px;border-top:1px solid var(--linha)}
+
+  .centro{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column}
+
+  .abas{
+    flex:0 0 var(--abas); height:var(--abas); display:flex; align-items:stretch; overflow-x:auto;
+    background:var(--bg); border-bottom:1px solid var(--linha);
+  }
+  .aba{
+    display:flex;align-items:center;gap:7px;padding:0 14px;cursor:pointer;white-space:nowrap;
+    background:transparent;border:0;border-top:2px solid transparent;color:var(--muted);font-size:12px;
+  }
+  .aba:hover{color:var(--ink)}
+  .aba.ativo{color:var(--ink);border-top-color:var(--acento);background:var(--painel)}
+  .aba .aSpin{
+    width:9px;height:9px;border-radius:50%;border:1.5px solid var(--linha2);border-top-color:var(--acento);
+    display:none;animation:gira .7s linear infinite;
+  }
+  .aba.transmitindo .aSpin{display:inline-block}
+  .aba .aSujo{width:6px;height:6px;border-radius:50%;background:var(--acento);display:none}
+  .aba.sujo .aSujo{display:inline-block}
+
+  .abaBody{display:none;flex:1 1 auto;min-height:0}
+  .abaBody.ativo{display:block;overflow:auto}
+  .pane{padding:16px}
+
+  /* --------------------------------------------------------------- chat */
+  .chatWrap{height:100%;display:flex;flex-direction:column;min-height:0}
+  .ctx{
+    flex:0 0 auto;padding:8px 16px;border-bottom:1px solid var(--linha);background:var(--painel);
+    color:var(--muted);font-size:11.5px;
+  }
+  .ctx b{color:var(--ink);font-weight:600}
+  .msgs{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .msg{padding:9px 13px;border-radius:6px;font-size:13px;white-space:pre-wrap;word-wrap:break-word;max-width:74%}
+  .msg.user{align-self:flex-end;background:var(--painel2);border:1px solid var(--linha2)}
+  .msg.bot{align-self:flex-start;background:var(--painel);border:1px solid var(--linha);min-width:120px}
+  .msg.bot.done{border-color:var(--ok)}
+  .msg .passos{display:flex;flex-direction:column;gap:2px}
+  .msg .passos:empty{display:none}
+  .msg .passos:not(:empty){margin-bottom:6px}
+  .passo{font-family:Consolas,ui-monospace,monospace;font-size:11px;line-height:1.45;color:var(--muted);white-space:pre-wrap}
+  .passo.ok{color:var(--ok)}
+  .passo.falha{color:var(--erro)}
+  .passo.agora{color:var(--acento)}
+  .digitando{display:inline-flex;gap:4px;padding:4px 0}
+  .digitando i{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite}
+  .digitando i:nth-child(2){animation-delay:.18s}
+  .digitando i:nth-child(3){animation-delay:.36s}
+  .chatIn{
+    flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 16px;
+    border-top:1px solid var(--linha);background:var(--painel);
+  }
+  .chatIn .prompt{color:var(--acento);font-size:14px}
+  .chatIn input{flex:1 1 auto;min-width:0;padding:8px 10px;font-size:12.5px}
+  .btn{
+    background:transparent;border:1px solid var(--linha2);color:var(--ink);border-radius:4px;
+    padding:7px 14px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;
+    transition:border-color 130ms,color 130ms;
+  }
+  .btn:hover{border-color:var(--acento)}
+  .btn.primary{border-color:var(--acento);color:var(--acento)}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  /* ----------------------------------------------------- unidades / fila */
+  .drone{
+    border:1px solid var(--linha);border-left:2px solid var(--c);border-radius:5px;
+    padding:9px 10px;margin-bottom:8px;cursor:pointer;background:var(--painel2);
+    transition:transform 130ms,border-color 130ms;
+  }
+  .drone:hover{transform:translateX(2px)}
+  .dTop{display:flex;align-items:center;gap:7px;min-width:0}
+  .drone .dot{width:7px;height:7px;border-radius:50%;background:var(--c);flex:0 0 auto}
+  .dNome{font-size:12px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dEstado{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+  .drone.trabalhando .dEstado{color:var(--c)}
+  .drone.trabalhando .dot{animation:pulso 1.8s ease-in-out infinite}
+  .dPapel{margin:5px 0 2px}
+  .dTarefa{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dBarra{height:2px;background:var(--linha2);margin:8px 0 5px}
+  .dBarra i{display:block;height:2px;background:var(--c)}
+  .dMeta{font-size:10.5px;color:var(--muted)}
+
+  .fila{border-bottom:1px solid var(--linha);padding:8px 0}
+  .fila:last-child{border-bottom:0}
+  .fTop{display:flex;align-items:baseline;gap:8px;min-width:0}
+  .fId{font-size:11px;color:var(--muted);flex:0 0 auto}
+  .fTit{font-size:12px;flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fBarra{height:2px;background:var(--linha2);margin:6px 0 5px}
+  .fBarra i{display:block;height:2px;background:var(--muted)}
+  .fBarra.run i{background:var(--acento)}
+  .fBarra.done i{background:var(--ok)}
+  .fBarra.bloq i{background:var(--erro)}
+  .fBot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .fBot .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pill{
+    font-size:10px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;
+    border:1px solid var(--linha2);border-radius:20px;padding:1px 9px;color:var(--muted);
+  }
+  .pill.run{color:var(--acento);border-color:var(--acento)}
   .pill.done{color:var(--ok);border-color:var(--ok)}
-  .pill.bloq{color:var(--bad);border-color:var(--bad)}
-  .log{max-height:300px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;font-size:12.5px;line-height:1.6}
+  .pill.bloq{color:var(--erro);border-color:var(--erro)}
+
+  /* ------------------------------------------------------------ registro */
+  .log{
+    background:var(--painel);border:1px solid var(--linha);border-radius:6px;padding:12px 14px;
+    font-family:Consolas,ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--muted);
+    max-height:300px;overflow:auto;
+  }
   .log .h{color:var(--ink);font-weight:600;margin-top:6px}
   .log .l{color:var(--muted)}
-  .log b{color:var(--ink)}
-  .rel{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
-  .rel:last-child{border-bottom:0}
-  .rel .st{color:var(--muted);font-size:12.5px}
+  .log b{color:var(--ink);font-weight:600}
+  #regTab{height:calc(100vh - var(--topo) - var(--abas) - var(--rodape) - 120px);overflow:auto;min-height:0}
+  .redeBox{border-bottom:1px solid var(--linha);padding:7px 0;display:flex;justify-content:space-between;gap:10px}
+  .redeBox:last-child{border-bottom:0}
+  .redeBox .st{color:var(--muted);font-size:12px}
   .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin-right:8px;vertical-align:middle}
   .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{border:1px solid var(--line2);border-radius:20px;padding:4px 12px;font-size:12.5px}
-  textarea{width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:6px;color:var(--ink);padding:10px 12px;font-size:13.5px;resize:vertical;font-family:inherit}
-  textarea:focus,input:focus{outline:none;border-color:var(--accent)}
-  button{background:transparent;border:1px solid var(--line2);color:var(--ink);border-radius:6px;padding:8px 16px;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
-  button:hover{border-color:var(--accent)}
-  button:disabled{opacity:.5;cursor:default}
-  button.primary{border-color:var(--accent);color:var(--accent)}
-  .row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
-  .msgs{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-  .msg{padding:8px 12px;border-radius:6px;font-size:13px;white-space:pre-wrap;word-wrap:break-word;max-width:92%}
-  .msg.user{align-self:flex-end;background:#151a22;border:1px solid var(--line2)}
-  .msg.bot{align-self:flex-start;background:var(--panel);border:1px solid var(--line)}
-  .msg.done{border-color:var(--ok)}
-.msg .passos{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
-.msg .passos:empty{display:none}
-.passo{font-size:11.5px;line-height:1.45;color:var(--muted);white-space:pre-wrap}
-.passo.ok{color:var(--ok)}
-.passo.falha{color:var(--bad)}
-.passo.agora{color:var(--accent)}
-  .psOut{height:240px;overflow:auto;margin:0;background:#050608;border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12.5px;line-height:1.5;color:#c8cfd8;white-space:pre-wrap;word-break:break-word}
+  .chip{border:1px solid var(--linha2);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--ink)}
+  .bloco{margin-bottom:20px}
+  .bloco>.lbl{display:block;margin-bottom:10px}
+  .ordemForm{display:flex;gap:10px;margin-bottom:16px}
+  .ordemForm textarea{flex:1 1 auto;min-width:0;min-height:64px;padding:9px 11px;font-size:12.5px;resize:vertical}
+
+  /* ------------------------------------------------------------ terminal */
+  .painelBaixo{
+    flex:0 0 auto;display:flex;flex-direction:column;min-height:0;
+    border-top:1px solid var(--linha);background:var(--bg);
+  }
+  .drag{height:4px;cursor:ns-resize;background:transparent;flex:0 0 4px}
+  .drag:hover{background:var(--acento)}
+  .pCab{
+    flex:0 0 31px;height:31px;display:flex;align-items:center;gap:12px;padding:0 12px;
+    background:var(--painel);border-bottom:1px solid var(--linha);
+  }
+  .pCab .on{font-size:11px;color:var(--ink)}
+  .pCab .pst{font-size:11px;color:var(--muted);margin-left:auto}
+  .pCorpo{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:8px 12px 10px}
+  .psOut{
+    flex:1 1 auto;min-height:0;overflow:auto;margin:0;background:#050608;border:1px solid var(--linha);
+    border-radius:4px;padding:9px 11px;font-size:12.5px;line-height:1.5;color:#c8cfd8;
+    font-family:Consolas,ui-monospace,monospace;white-space:pre-wrap;word-break:break-word;
+  }
   .psIn{display:flex;align-items:center;gap:10px;margin-top:8px}
-  .psIn b{color:var(--accent);font-size:12px}
-  .psIn input{flex:1;background:var(--panel);border:1px solid var(--line2);border-radius:6px;color:var(--ink);padding:8px 10px;font-size:12.5px;font-family:Consolas,ui-monospace,monospace}
-  .psEcho{color:var(--muted)}.psErr{color:var(--bad)}.psMeta{color:var(--muted)}
-  .foot{margin-top:32px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:11.5px}
+  .psIn b{color:var(--acento);font-size:12px}
+  .psIn input{flex:1 1 auto;min-width:0;padding:7px 9px;font-size:12.5px;font-family:Consolas,ui-monospace,monospace}
+  .psEcho{color:var(--muted)} .psErr{color:var(--erro)} .psMeta{color:var(--muted)}
+  .painelBaixo.recolhido{height:35px!important}
+  .painelBaixo.recolhido .drag,.painelBaixo.recolhido .pCorpo{display:none}
+  body.redim{cursor:ns-resize;user-select:none}
+
+  /* -------------------------------------------------------------- rodapé */
+  .rodape{
+    flex:0 0 var(--rodape);height:var(--rodape);display:flex;align-items:center;gap:10px;
+    padding:0 12px;background:var(--painel);border-top:1px solid var(--linha);
+    font-size:10.5px;color:var(--muted);font-family:Consolas,ui-monospace,monospace;
+  }
+  .rodape .sp{flex:1 1 auto}
+  .rodape .sv{color:var(--ink)}
+  .rodape .dotc{width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px}
+
+  /* ---------------------------------------------------------------- aviso */
+  .toast{
+    position:fixed;right:16px;bottom:34px;max-width:360px;padding:9px 12px;font-size:12px;
+    background:var(--painel2);border:1px solid var(--linha2);border-radius:5px;color:var(--ink);
+    opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 140ms,transform 140ms;z-index:60;
+  }
+  .toast.mostra{opacity:1;transform:translateY(0)}
+  .toast.falha{border-color:var(--erro);color:#f0c9c9}
+
+  .oculto{display:none!important}
+
+  @keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+  @keyframes blink{0%,100%{opacity:.25}50%{opacity:1}}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){
+    .live i,.drone.trabalhando .dot,.digitando i,.aba .aSpin{animation:none}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="head">
-    <div class="headTop">
-      <h1>NÚCLEO DE COMANDO</h1>
-      <span class="live"><i></i>ao vivo</span>
+
+<!-- ============================================================ título -->
+<header class="topo">
+  <span class="tNome">NÚCLEO DE COMANDO</span>
+  <span class="topoSep"></span>
+  <span class="live"><i></i>ao vivo</span>
+  <span class="topoMeta mono" id="tbOperacao">–</span>
+  <span class="topoFlex"></span>
+  <div class="modWrap">
+    <button class="modBtn" id="modBtn" title="Modelo do comandante (GESTOR)">
+      <span class="rot">comandante</span>
+      <span class="nome mono" id="modNome">—</span>
+      <span class="caret">▾</span>
+    </button>
+    <div class="modMenu oculto" id="modMenu">
+      <input id="modBusca" autocomplete="off" spellcheck="false" placeholder="buscar modelo…" />
+      <div class="modLista" id="modLista"></div>
     </div>
-    <div class="meta mono"><span id="modulo">–</span> • <span id="operacao">–</span> • <span id="status">–</span></div>
-  </header>
-  <section>
-    <span class="lbl">Indicadores</span>
-    <div class="inds" id="inds"></div>
-  </section>
-  <section>
-    <span class="lbl">Tarefas</span>
-    <div id="tarefas"></div>
-  </section>
-  <section>
-    <span class="lbl">Registro</span>
-    <div class="log mono" id="registro" aria-live="polite"></div>
-  </section>
-  <section>
-    <span class="lbl">Parceiros</span>
-    <div id="parceiros"></div>
-  </section>
-  <section>
-    <span class="lbl">Ativos &amp; Integrações</span>
-    <div class="chips" id="chips"></div>
-  </section>
-  <section>
-    <span class="lbl">Nova Ordem</span>
-    <textarea id="ordem" placeholder="Ex.: criar a landing page do produto X e publicar"></textarea>
-    <div class="row">
-      <button id="enviar" class="primary">Enviar ordem</button>
-      <span id="status2" class="hint">A ordem é gravada em jogo/ordens.md para o GESTOR executar.</span>
+  </div>
+  <span class="topoSep"></span>
+  <button class="iconBtn" id="sideBtn" title="Recolher/expandir painel lateral">
+    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.3">
+      <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M6 2.5v11"/>
+    </svg>
+  </button>
+</header>
+
+<div class="corpo">
+
+  <!-- ================================================== barra de atividades -->
+  <nav class="ativ" id="ativ">
+    <button class="atvItem ativo" data-view="unidades" title="Unidades e fila de tarefas (Ctrl+1)" aria-label="Unidades">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="1.5" y="1.5" width="5" height="5"/><rect x="9.5" y="1.5" width="5" height="5"/>
+        <rect x="1.5" y="9.5" width="5" height="5"/><rect x="9.5" y="9.5" width="5" height="5"/>
+      </svg>
+    </button>
+    <button class="atvItem" data-view="registro" title="Registro (Ctrl+2)" aria-label="Registro">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <path d="M4 1.5h5l3 3v10H4z"/><path d="M9 1.5v3h3"/><path d="M5.5 8h5M5.5 10.5h5"/>
+      </svg>
+    </button>
+    <button class="atvItem" data-view="rede" title="Rede (Ctrl+3)" aria-label="Rede">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <circle cx="8" cy="2.6" r="1.7"/><circle cx="2.6" cy="13" r="1.7"/><circle cx="13.4" cy="13" r="1.7"/>
+        <path d="M7.1 4.3 3.5 11.3M8.9 4.3l3.6 7M4.6 13h6.8"/>
+      </svg>
+    </button>
+    <button class="atvItem" data-view="ordens" title="Ordens (Ctrl+4)" aria-label="Ordens">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <path d="M2 4h1.6M2 8h1.6M2 12h1.6"/><path d="M5.5 4h8M5.5 8h8M5.5 12h8"/>
+      </svg>
+    </button>
+    <button class="atvItem" data-view="terminal" title="Terminal (Ctrl+5)" aria-label="Terminal">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M4.5 6.5 6.5 8.5 4.5 10.5M8 10.5h3.5"/>
+      </svg>
+    </button>
+  </nav>
+
+  <!-- ============================================================ lateral -->
+  <aside class="lateral" id="lateral">
+    <div class="sideView ativo" data-view="unidades">
+      <div class="sideHead lbl">Unidades</div>
+      <div id="drones"></div>
+      <div class="sideHead lbl">Fila de tarefas</div>
+      <div id="fila"></div>
     </div>
-  </section>
-  <section>
-    <span class="lbl">Console do GESTOR (OpenCode)</span>
-    <div class="msgs" id="msgs" aria-live="polite"></div>
-    <textarea id="chatIn" placeholder="Dê uma ordem ao GESTOR... (Ctrl+Enter envia)"></textarea>
-    <div class="row">
-      <button id="chatSend" class="primary">Executar ordem</button>
-      <span id="chatStatus" class="hint">Conectando ao OpenCode...</span>
+    <div class="sideView" data-view="registro">
+      <div class="sideHead lbl">Registro</div>
+      <div class="log" id="regSide" aria-live="polite"></div>
     </div>
-  </section>
-  <section>
-    <span class="lbl">Terminal PowerShell</span>
-    <pre class="psOut mono" id="psOut" aria-live="polite"></pre>
+    <div class="sideView" data-view="rede">
+      <div class="sideHead lbl">Rede</div>
+      <div id="redeSide"></div>
+    </div>
+    <div class="sideView" data-view="ordens">
+      <div class="sideHead lbl">Ordens arquivadas</div>
+      <div class="log" id="ordSide" aria-live="polite"></div>
+    </div>
+    <div class="sideView" data-view="terminal">
+      <div class="sideHead lbl">Terminal</div>
+      <div class="vazio">O PowerShell real roda no painel inferior. Ctrl+` recolhe/expande.</div>
+    </div>
+  </aside>
+
+  <!-- ============================================================== centro -->
+  <main class="centro">
+    <div class="abas" id="abas">
+      <button class="aba ativo" data-tab="gestor.chat">
+        <span class="aNome">gestor.chat</span><span class="aSpin"></span><span class="aSujo"></span>
+      </button>
+      <button class="aba" data-tab="registro"><span class="aNome">registro</span></button>
+      <button class="aba" data-tab="rede"><span class="aNome">rede</span></button>
+      <button class="aba" data-tab="ordens"><span class="aNome">ordens</span></button>
+    </div>
+
+    <div class="abaBody ativo" data-tab="gestor.chat" id="aba-gestor.chat">
+      <div class="chatWrap">
+        <div class="ctx" id="chatCtx">
+          Chat do comandante: ordene aos drones <b>servo-busca</b>, <b>servo-construcao</b> e
+          <b>servo-revisao</b> — eles executam as tarefas rumo ao objetivo.
+        </div>
+        <div class="msgs" id="chatMsgs" aria-live="polite"></div>
+        <div class="chatIn">
+          <span class="prompt mono">&gt;</span>
+          <input id="chatIn" autocomplete="off" spellcheck="false" placeholder="ordene ao GESTOR… (Ctrl+Enter envia • ↑/↓ histórico)" />
+          <button class="btn primary" id="chatSend">Enviar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="abaBody" data-tab="registro" id="aba-registro">
+      <div class="pane"><div class="log" id="regTab" aria-live="polite"></div></div>
+    </div>
+
+    <div class="abaBody" data-tab="rede" id="aba-rede">
+      <div class="pane" id="redeTab"></div>
+    </div>
+
+    <div class="abaBody" data-tab="ordens" id="aba-ordens">
+      <div class="pane">
+        <div class="ordemForm">
+          <textarea id="ordemTxt" placeholder="Ex.: criar a landing page do produto X e publicar"></textarea>
+          <div>
+            <button class="btn primary" id="ordemBtn">Arquivar ordem</button>
+            <div class="lbl" style="margin-top:8px" id="ordemSt">grava em jogo/ordens.md</div>
+          </div>
+        </div>
+        <div class="log" id="ordTab" aria-live="polite"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============================================================= terminal -->
+<section class="painelBaixo" id="painelBaixo">
+  <div class="drag" id="drag" title="Arraste para redimensionar"></div>
+  <div class="pCab">
+    <span class="lbl">Terminal</span>
+    <span class="on mono">PowerShell</span>
+    <span class="pst" id="psStatus">Pronto.</span>
+    <button class="iconBtn" id="psToggle" title="Recolher/expandir (Ctrl+`)">
+      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4">
+        <path d="M3 6l5 5 5-5"/>
+      </svg>
+    </button>
+  </div>
+  <div class="pCorpo">
+    <pre class="psOut" id="psOut" aria-live="polite"></pre>
     <div class="psIn">
       <b>PS&gt;</b>
       <input id="psIn" autocomplete="off" spellcheck="false" placeholder="ex.: Get-Date  •  dir  •  node -v  (Enter executa)" />
-      <button id="psRun">Rodar</button>
+      <button class="btn" id="psRun">Rodar</button>
+      <button class="btn" id="psLimpar">Limpar</button>
     </div>
-    <div class="row">
-      <button id="psLimpar">Limpar</button>
-      <span class="hint" id="psStatus">Pronto.</span>
-      <span class="hint">↑/↓ histórico • Ctrl+L limpa</span>
-    </div>
-  </section>
-  <div class="foot">Atualização a cada 3s • jogo/estado.json e jogo/registro.md</div>
-</div>
+  </div>
+</section>
+
+<!-- =============================================================== rodapé -->
+<footer class="rodape">
+  <span id="sbOp">–</span><span>•</span><span id="sbMod">–</span><span>•</span><span class="sv" id="sbSt">–</span>
+  <span class="sp"></span>
+  <span><i class="dotc" id="sbDot"></i><span id="sbConn">OpenCode: conectando…</span></span>
+  <span class="sv" id="sbRelogio">--:--:--</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
 <script>
 "use strict";
+/* ------------------------------------------------------------- utilidades */
 const el  = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const num = (v) => Number(v||0).toLocaleString("pt-BR");
-const IND = [
-  {key:"capacidade",label:"Capacidade",max:3000},{key:"suprimentos",label:"Suprimentos",max:2000},
-  {key:"equipe",label:"Equipe",max:600},{key:"eficiencia",label:"Eficiência",max:100},
-  {key:"conhecimento",label:"Conhecimento",max:500}
+const norm = (s) => String(s == null ? "" : s).toLowerCase();
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem("nc." + k); return v === null ? d : v; }catch(_){ return d; } },
+  set(k, v){ try{ localStorage.setItem("nc." + k, String(v)); }catch(_){} }
+};
+let toastTimer = 0;
+function toast(msg, falha){
+  const t = el("toast");
+  t.textContent = msg;
+  t.className = "toast mostra" + (falha ? " falha" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = "toast" + (falha ? " falha" : ""); }, 4200);
+}
+
+/* ---------------------------------------------------------------- estado */
+let EST = {}, REG_MD = "", ORD_MD = "";
+const DRONES = [
+  { nome:"servo-busca",      papel:"reconhecimento", cor:"var(--drone-busca)" },
+  { nome:"servo-construcao", papel:"fabricação",     cor:"var(--drone-construcao)" },
+  { nome:"servo-revisao",    papel:"inspeção",       cor:"var(--drone-revisao)" }
 ];
-let EST = {};
-const lerBloco = (fatia) => {
-  const partes = String(fatia).split("\n").filter(l => l.trim() !== "");
+const classeStatus = (s) => {
+  const t = norm(s);
+  if(/bloq/.test(t)) return "bloq";
+  if(/conclu/.test(t)) return "done";
+  if(/execu|andamento/.test(t)) return "run";
+  return "pend";
+};
+const tarefasDo = (nome) => (EST.tarefas || []).filter(t => norm(t.responsavel) === norm(nome));
+const tarefaAtiva = (nome) => tarefasDo(nome).find(t => /execu|andamento/.test(norm(t.status)));
+const corParceiro = (v) => {
+  const s = norm(v);
+  if(/ativo|aliado|parceiro/.test(s)) return "var(--ok)";
+  if(/hostil|cr[ií]tico|inativo/.test(s)) return "var(--erro)";
+  return "var(--muted)";
+};
+
+/* --------------------------------------------------- markdown simples */
+function lerBloco(fatia){
+  const partes = String(fatia || "").split("\n").filter(l => l.trim() !== "");
   const blocos = [];
   for(const l of partes){
     let cls = "l", txt = l;
@@ -154,104 +503,164 @@ const lerBloco = (fatia) => {
     blocos.push(`<div class="${cls}">${esc(txt).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</div>`);
   }
   return blocos.join("");
-};
-function indicadores(){
-  const r = EST.indicadores || EST.recursos || {};
-  el("inds").innerHTML = IND.map(c => {
-    const v = Number(r[c.key] || 0), p = c.max ? Math.max(0, Math.min(100, v / c.max * 100)) : 0;
-    return `<div class="ind"><div class="lbl">${c.label}</div><div class="n mono">${num(v)}</div>`
-      + `<div class="track"><i style="width:${p}%"></i></div></div>`;
+}
+function pintarLog(id, md, vazio){
+  const e = el(id);
+  if(!e) return;
+  const noFim = e.scrollHeight - e.scrollTop - e.clientHeight < 40;
+  e.innerHTML = md || `<div class="l">${esc(vazio)}</div>`;
+  if(noFim) e.scrollTop = e.scrollHeight;
+}
+
+/* ------------------------------------------------------------ unidades */
+function renderUnidades(){
+  const alvo = el("drones");
+  if(!alvo) return;
+  alvo.innerHTML = DRONES.map(d => {
+    const t = tarefaAtiva(d.nome);
+    const lista = tarefasDo(d.nome);
+    const feitas = lista.filter(x => /conclu/.test(norm(x.status))).length;
+    const pct = lista.length ? Math.round(feitas / lista.length * 100) : 0;
+    const estado = t ? "trabalhando" : (lista.length && feitas === lista.length ? "concluído" : "ocioso");
+    return `<div class="drone${t ? " trabalhando" : ""}" data-drone="${esc(d.nome)}" style="--c:${d.cor}" title="clique para citar no chat">
+      <div class="dTop"><i class="dot"></i><span class="dNome mono">${esc(d.nome)}</span><span class="dEstado">${esc(estado)}</span></div>
+      <div class="dPapel lbl">${esc(d.papel)}</div>
+      <div class="dTarefa">${esc(t ? (t.titulo || "") : "sem tarefa em execução")}</div>
+      <div class="dBarra"><i style="width:${pct}%"></i></div>
+      <div class="dMeta mono">nível ${feitas} • ${pct}% concluído</div>
+    </div>`;
   }).join("");
+  alvo.querySelectorAll(".drone").forEach(c => c.addEventListener("click", () => {
+    const inp = el("chatIn");
+    inp.value = (inp.value.trim() ? inp.value.trim() + " " : "") + c.dataset.drone;
+    ativarAba("gestor.chat"); setView("unidades"); inp.focus();
+  }));
 }
-function classeStatus(s){
-  s = String(s || "").toLowerCase();
-  if(/bloq/.test(s)) return "bloq";
-  if(/conclu/.test(s)) return "done";
-  if(/execu|andamento/.test(s)) return "run";
-  return "";
+function renderFila(){
+  const alvo = el("fila");
+  if(!alvo) return;
+  const ts = EST.tarefas || [];
+  alvo.innerHTML = ts.length ? ts.map(t => {
+    const cl = classeStatus(t.status);
+    const pct = cl === "done" ? 100 : cl === "run" ? 50 : 0;
+    return `<div class="fila">
+      <div class="fTop"><span class="fId mono">${esc(t.id || "")}</span><span class="fTit">${esc(t.titulo || "")}</span></div>
+      <div class="fBarra ${cl}"><i style="width:${pct}%"></i></div>
+      <div class="fBot"><span class="lbl">${esc(t.responsavel || "—")}</span><span class="pill ${cl}">${esc(t.status || "pendente")}</span></div>
+    </div>`;
+  }).join("") : `<div class="vazio">Sem tarefas na fila.</div>`;
 }
-function tarefas(){
-  const t = EST.tarefas || [];
-  el("tarefas").innerHTML = t.length ? t.map(x =>
-    `<div class="task"><span class="tid mono">${esc(x.id || "")}</span><span class="ttitle">${esc(x.titulo || "")}</span>`
-    + `<span class="pill ${classeStatus(x.status)}">${esc(x.status || "pendente")}</span></div>`
-  ).join("") : `<div class="hint">Sem tarefas no momento.</div>`;
+function renderRegistro(){
+  pintarLog("regSide", lerBloco(REG_MD), "Sem registro.");
+  pintarLog("regTab", lerBloco(REG_MD), "Sem registro.");
 }
-function registro(md){
-  const html = lerBloco(md);
-  el("registro").innerHTML = html || `<div class="hint">Sem registro.</div>`;
-}
-function corParceiro(v){
-  const s = String(v || "").toLowerCase();
-  if(/ativo|aliado|parceiro/.test(s)) return "var(--ok)";
-  if(/hostil|cr[ií]tico|inativo/.test(s)) return "var(--bad)";
-  return "var(--muted)";
-}
-function parceiros(){
-  const p = EST.parceiros || EST.faccoes || {}, ks = Object.keys(p);
-  el("parceiros").innerHTML = ks.length ? ks.map(k => {
-    const v = String(p[k]);
-    return `<div class="rel"><span><i class="dot" style="background:${corParceiro(v)}"></i>${esc(k)}</span>`
-      + `<span class="st mono">${esc(v)}</span></div>`;
-  }).join("") : `<div class="hint">Nenhum parceiro registrado.</div>`;
-}
-function chips(){
+function renderRede(){
+  const p = EST.parceiros || {}, ks = Object.keys(p);
+  const parceiros = ks.length ? ks.map(k =>
+    `<div class="redeBox"><span><i class="dot" style="background:${corParceiro(p[k])}"></i>${esc(k)}</span><span class="st mono">${esc(p[k])}</span></div>`
+  ).join("") : `<div class="vazio">Nenhum parceiro registrado.</div>`;
   const lista = [...(EST.ativos || []), ...(EST.integracoes || [])];
-  el("chips").innerHTML = lista.length ? lista.map(x => `<span class="chip">${esc(x)}</span>`).join("")
-    : `<span class="hint">Nenhum ativo ou integração registrado.</span>`;
+  const chips = lista.length ? lista.map(x => `<span class="chip">${esc(x)}</span>`).join("") : `<span class="vazio">Nenhum ativo ou integração registrado.</span>`;
+  const bloco = `<div class="bloco"><div class="lbl">Parceiros</div>${parceiros}</div>`
+    + `<div class="bloco"><div class="lbl">Ativos &amp; Integrações</div><div class="chips">${chips}</div></div>`;
+  const a = el("redeSide"); if(a) a.innerHTML = bloco;
+  const b = el("redeTab"); if(b) b.innerHTML = bloco;
 }
-function render(est, reg){
-  EST = est || {};
-  el("modulo").textContent = EST.modulo ?? "–";
-  el("operacao").textContent = EST.operacao ?? "–";
-  el("status").textContent = EST.status ?? "–";
-  indicadores(); tarefas(); registro(reg); parceiros(); chips();
+function renderOrdens(){
+  const md = lerBloco(ORD_MD);
+  pintarLog("ordSide", md, "Sem ordens arquivadas.");
+  pintarLog("ordTab", md, "Sem ordens arquivadas.");
 }
-/* ciclo 3s (preservado) */
+
+/* ------------------------------------------------------------- ciclo 3s */
 async function carregar(){
   try{
-    const [e, r] = await Promise.all([
+    const [e, r, o] = await Promise.all([
       fetch("/api/estado", { cache:"no-store" }).then(x => x.json()),
-      fetch("/api/registro", { cache:"no-store" }).then(x => x.text())
+      fetch("/api/registro", { cache:"no-store" }).then(x => x.text()),
+      fetch("/api/ordens", { cache:"no-store" }).then(x => x.text()).catch(() => "")
     ]);
-    render(e, r);
-  }catch(err){ /* offline — mantém o último estado */ }
+    EST = e || {}; REG_MD = r || ""; ORD_MD = o || "";
+    el("tbOperacao").textContent = EST.operacao ?? "–";
+    el("sbOp").textContent = EST.operacao ?? "–";
+    el("sbMod").textContent = EST.modulo ?? "–";
+    el("sbSt").textContent = EST.status ?? "–";
+    renderUnidades(); renderFila(); renderRegistro(); renderRede(); renderOrdens();
+  }catch(_){ /* servidor offline — mantém o último estado */ }
 }
-carregar();
-setInterval(carregar, 3000);
-/* nova ordem → POST /api/ordem */
-el("enviar").addEventListener("click", async () => {
-  const text = el("ordem").value.trim(), st = el("status2"), btn = el("enviar");
-  if(!text){ st.textContent = "Escreva uma ordem primeiro."; st.className = "hint"; return; }
-  btn.disabled = true; st.textContent = "Enviando..."; st.className = "hint";
-  try{
-    const res = await fetch("/api/ordem", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text }) });
-    const j = await res.json();
-    if(j.ok){
-      st.textContent = "Ordem registrada em jogo/ordens.md. No OpenCode, peça: \"GESTOR, leia jogo/ordens.md e execute\".";
-      st.className = "ok"; el("ordem").value = "";
-    } else { st.textContent = "Falha: " + (j.erro || "erro"); st.className = "hint"; }
-  }catch(err){ st.textContent = "Servidor offline."; st.className = "hint"; }
-  btn.disabled = false;
+
+/* ------------------------------------------------------ views e abas */
+const VIEWS = [
+  { id:"unidades", tab:"gestor.chat" },
+  { id:"registro", tab:"registro" },
+  { id:"rede",     tab:"rede" },
+  { id:"ordens",   tab:"ordens" },
+  { id:"terminal", tab:null }
+];
+function setView(id, persistir){
+  if(!VIEWS.some(v => v.id === id)) id = "unidades";
+  document.querySelectorAll(".atvItem").forEach(b => b.classList.toggle("ativo", b.dataset.view === id));
+  document.querySelectorAll(".sideView").forEach(v => v.classList.toggle("ativo", v.dataset.view === id));
+  if(persistir !== false) LS.set("view", id);
+}
+function ativarAba(id, focar){
+  if(!el("aba-" + id)) id = "gestor.chat";
+  document.querySelectorAll(".aba").forEach(b => b.classList.toggle("ativo", b.dataset.tab === id));
+  document.querySelectorAll(".abaBody").forEach(b => b.classList.toggle("ativo", b.dataset.tab === id));
+  if(id === "gestor.chat") limparSujo();
+  LS.set("tab", id);
+  if(focar) el("chatIn").focus();
+}
+document.querySelectorAll(".aba").forEach(b => b.addEventListener("click", () => ativarAba(b.dataset.tab, true)));
+document.querySelectorAll(".atvItem").forEach(b => b.addEventListener("click", () => {
+  const v = VIEWS.find(x => x.id === b.dataset.view);
+  setView(b.dataset.view);
+  if(v && v.tab) ativarAba(v.tab); else alternarTerminal(true);
+}));
+el("sideBtn").addEventListener("click", () => {
+  const l = el("lateral");
+  l.classList.toggle("oculta");
+  LS.set("side", l.classList.contains("oculta") ? "0" : "1");
 });
-/* console OpenCode → POST /api/chat (SSE) + status a cada 5s */
-const msgsEl = el("msgs");
+
+/* ------------------------------------------------------ chat principal */
+const CHAT = el("chatMsgs");
+const chatNoFim = () => { CHAT.scrollTop = CHAT.scrollHeight; };
 function addMsg(role, text){
   const d = document.createElement("div");
   d.className = "msg " + role;
   d.textContent = text || "";
-  msgsEl.appendChild(d); msgsEl.scrollTop = msgsEl.scrollHeight; return d;
+  CHAT.appendChild(d); chatNoFim(); return d;
 }
 function addBot(){
   const d = document.createElement("div");
   d.className = "msg bot";
   const passos = document.createElement("div"); passos.className = "passos";
-  const texto = document.createElement("div"); texto.className = "texto";
+  const texto  = document.createElement("div"); texto.className  = "texto";
   d.appendChild(passos); d.appendChild(texto);
-  msgsEl.appendChild(d); msgsEl.scrollTop = msgsEl.scrollHeight;
-  return { el: d, passos, texto };
+  CHAT.appendChild(d); chatNoFim();
+  return { el: d, passos, texto, digitando: null };
 }
-const NOMES = { subagent:"drone", glob:"buscar arquivos", grep:"pesquisar", read:"ler arquivo", edit:"editar", write:"escrever", bash:"comando", shell:"comando", webfetch:"acessar web", websearch:"pesquisar web", task:"tarefa" };
+function digitando(bot, on){
+  if(on && !bot.digitando){
+    const t = document.createElement("div");
+    t.className = "digitando";
+    t.innerHTML = "<i></i><i></i><i></i>";
+    bot.el.appendChild(t); bot.digitando = t; chatNoFim();
+  } else if(!on && bot.digitando){ bot.digitando.remove(); bot.digitando = null; }
+}
+function marcarTransmitindo(on){
+  const a = document.querySelector('.aba[data-tab="gestor.chat"]');
+  if(a) a.classList.toggle("transmitindo", !!on);
+}
+function marcarSujo(on){
+  const a = document.querySelector('.aba[data-tab="gestor.chat"]');
+  if(a) a.classList.toggle("sujo", !!on);
+}
+function limparSujo(){ marcarSujo(false); }
+
+const NOMES = { subagent:"drone", glob:"buscar arquivos", grep:"pesquisar", read:"ler arquivo", edit:"editar",
+  write:"escrever", bash:"comando", shell:"comando", webfetch:"acessar web", websearch:"pesquisar web", task:"tarefa" };
 const rotulo = (n) => NOMES[n] || n || "ferramenta";
 function passoLinha(bot, info){
   const anterior = bot.passos.querySelector(".agora");
@@ -267,15 +676,7 @@ function passoLinha(bot, info){
     a.textContent = (info.estado === "ok" ? "✓ " : "✗ ") + rotulo(info.nome);
     bot.passos.appendChild(a);
   }
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-}
-async function checarStatus(){
-  const st = el("chatStatus");
-  try{
-    const s = await fetch("/api/chat/status", { cache:"no-store" }).then(r => r.json());
-    if(s.opencode){ st.textContent = "OpenCode conectado • sessão " + String(s.sessao || "").slice(0,12); st.className = "ok"; }
-    else { st.textContent = "OpenCode: " + (s.erro || "conectando..."); st.className = "hint"; }
-  }catch(_){ st.textContent = "OpenCode: servidor offline"; st.className = "hint"; }
+  chatNoFim();
 }
 function tratarSSE(raw, bot){
   let ev = "", data = "";
@@ -284,43 +685,175 @@ function tratarSSE(raw, bot){
     else if(line.startsWith("data:")) data += line.slice(5).trim();
   }
   let j = {}; try{ j = JSON.parse(data || "{}"); }catch(_){}
-  if(ev === "delta"){ bot.texto.textContent += j.d || ""; }
+  if(ev === "delta"){ digitando(bot, false); bot.texto.textContent += j.d || ""; }
   else if(ev === "passo"){ passoLinha(bot, j); }
-  else if(ev === "error"){ bot.texto.textContent += "\n[erro: " + (j.message || "") + "]"; }
+  else if(ev === "error"){ digitando(bot, false); bot.texto.textContent += (bot.texto.textContent ? "\n" : "") + "[erro: " + (j.message || "") + "]"; }
   else if(ev === "done"){
+    digitando(bot, false);
     bot.el.classList.add("done");
     const a = bot.passos.querySelector(".agora"); if(a) a.remove();
   }
-  msgsEl.scrollTop = msgsEl.scrollHeight;
+  chatNoFim();
 }
+let chatRodando = false, histChat = [], histIdx = -1;
 async function enviarChat(){
-  const text = el("chatIn").value.trim();
+  if(chatRodando) return;
+  const inp = el("chatIn");
+  const text = inp.value.trim();
   if(!text) return;
-  el("chatIn").value = "";
+  inp.value = "";
+  histChat.push(text); histIdx = histChat.length;
   addMsg("user", text);
   const bot = addBot();
+  digitando(bot, true);
+  chatRodando = true;
+  marcarTransmitindo(true); marcarSujo(true);
   el("chatSend").disabled = true;
-  el("chatStatus").textContent = "executando..."; el("chatStatus").className = "hint";
   try{
     const resp = await fetch("/api/chat", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text }) });
-    if(!resp.ok || !resp.body){ bot.texto.textContent = "[erro: HTTP " + resp.status + "]"; }
-    else{
+    if(!resp.ok || !resp.body){
+      digitando(bot, false);
+      bot.texto.textContent = "[erro: HTTP " + resp.status + "]";
+    } else {
       const reader = resp.body.getReader(), dec = new TextDecoder();
       let buf = "";
       for(let ch = await reader.read(); !ch.done; ch = await reader.read()){
         buf += dec.decode(ch.value, { stream:true });
         let i;
-        while((i = buf.indexOf("\n\n")) >= 0){ const raw = buf.slice(0, i); buf = buf.slice(i + 2); if(raw.trim()) tratarSSE(raw, bot); }
+        while((i = buf.indexOf("\n\n")) >= 0){
+          const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+          if(raw.trim()) tratarSSE(raw, bot);
+        }
       }
     }
-  }catch(err){ bot.texto.textContent += "\n[erro: " + err.message + "]"; }
+  }catch(err){ digitando(bot, false); bot.texto.textContent += (bot.texto.textContent ? "\n" : "") + "[erro: " + err.message + "]"; }
+  digitando(bot, false);
+  chatRodando = false;
+  marcarTransmitindo(false);
   el("chatSend").disabled = false;
   checarStatus(); carregar();
 }
 el("chatSend").addEventListener("click", enviarChat);
-el("chatIn").addEventListener("keydown", (e) => { if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); enviarChat(); } });
-checarStatus(); setInterval(checarStatus, 5000);
-/* terminal PowerShell → POST /api/ps (SSE) — Enter executa, ↑/↓ histórico, Ctrl+L limpa */
+el("chatIn").addEventListener("keydown", (e) => {
+  if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); enviarChat(); }
+  else if(e.key === "ArrowUp" && !e.ctrlKey){
+    if(!histChat.length) return;
+    e.preventDefault();
+    histIdx = histIdx <= 0 ? 0 : histIdx - 1;
+    el("chatIn").value = histChat[histIdx];
+  } else if(e.key === "ArrowDown" && !e.ctrlKey){
+    if(!histChat.length) return;
+    e.preventDefault();
+    histIdx = histIdx >= histChat.length - 1 ? histChat.length : histIdx + 1;
+    el("chatIn").value = histIdx >= histChat.length ? "" : histChat[histIdx];
+  }
+});
+
+/* ------------------------------------- status da conexão + relógio */
+async function checarStatus(){
+  const c = el("sbConn"), d = el("sbDot");
+  try{
+    const s = await fetch("/api/chat/status", { cache:"no-store" }).then(r => r.json());
+    if(s.opencode){ c.textContent = "OpenCode • sessão " + String(s.sessao || "").slice(0, 10); d.style.background = "var(--ok)"; if(s.modelo) aplicarModeloRotulo(s.modelo); }
+    else { c.textContent = "OpenCode: " + (s.erro || "conectando…"); d.style.background = "var(--alerta)"; }
+  }catch(_){ c.textContent = "OpenCode: servidor offline"; d.style.background = "var(--erro)"; }
+}
+function relogio(){
+  const d = new Date();
+  el("sbRelogio").textContent = d.toLocaleTimeString("pt-BR");
+}
+function aplicarModeloRotulo(m){
+  if(!m) return;
+  MODELOS.atual = typeof m === "string" ? { providerID:"", modelID:m, name:m } : m;
+  el("modNome").textContent = MODELOS.atual.name || MODELOS.atual.modelID || "—";
+}
+
+/* ------------------------------------------ seletor de modelo (comandante) */
+const MODELOS = { lista:[], atual:null, erro:null };
+function abrirModelo(on){
+  el("modMenu").classList.toggle("oculto", !on);
+  if(on){ el("modBusca").value = ""; carregarModelos(); el("modBusca").focus(); }
+}
+function renderModeloLista(){
+  const cont = el("modLista");
+  if(!MODELOS.lista.length){
+    cont.innerHTML = `<div class="mMsg">Modelos indisponíveis${MODELOS.erro ? ": " + esc(MODELOS.erro) : ""}.</div>`;
+    return;
+  }
+  const q = norm(el("modBusca").value);
+  const lista = MODELOS.lista.filter(m => !q || norm((m.nome || "") + " " + (m.provedor || "") + " " + (m.id || "")).includes(q));
+  if(!lista.length){ cont.innerHTML = `<div class="mMsg">Nenhum modelo corresponde à busca.</div>`; return; }
+  const grupos = {};
+  lista.forEach(m => { const p = m.provedor || "—"; if(!grupos[p]) grupos[p] = []; grupos[p].push(m); });
+  cont.innerHTML = Object.keys(grupos).map(p =>
+    `<div class="mGrupo">${esc(p)}</div>` + grupos[p].map(m => {
+      const cur = MODELOS.atual && m.providerID === MODELOS.atual.providerID && m.modelID === MODELOS.atual.modelID;
+      return `<button class="mItem${cur ? " atual" : ""}" data-p="${esc(m.providerID || "")}" data-m="${esc(m.modelID || "")}">`
+        + `<span class="mNome">${esc(m.nome || m.modelID || m.id)}</span>${cur ? '<span class="mCheck">✓</span>' : ""}</button>`;
+    }).join("")
+  ).join("");
+  cont.querySelectorAll(".mItem").forEach(b => b.addEventListener("click", () => escolherModelo(b.dataset.p, b.dataset.m)));
+}
+async function carregarModelos(){
+  try{
+    const r = await fetch("/api/modelos", { cache:"no-store" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    MODELOS.lista = Array.isArray(j.modelos) ? j.modelos : [];
+    MODELOS.erro = j.erro || null;
+    if(j.atual){
+      MODELOS.atual = j.atual;
+      el("modNome").textContent = MODELOS.atual.name || MODELOS.atual.modelID || "—";
+      LS.set("modelo", MODELOS.atual.name || MODELOS.atual.modelID || "");
+    } else if(!MODELOS.atual && LS.get("modelo", "")){
+      el("modNome").textContent = LS.get("modelo", "—");
+    }
+  }catch(err){
+    MODELOS.lista = [];
+    MODELOS.erro = "rota indisponível";
+  }
+  renderModeloLista();
+}
+async function escolherModelo(providerID, modelID){
+  abrirModelo(false);
+  const anterior = MODELOS.atual;
+  try{
+    const r = await fetch("/api/modelo", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ providerID, modelID }) });
+    const j = await r.json();
+    if(j && j.ok){
+      MODELOS.atual = j.atual || { providerID, modelID, name: modelID };
+      const rot = MODELOS.atual.name || MODELOS.atual.modelID || modelID;
+      el("modNome").textContent = rot;
+      LS.set("modelo", rot);
+      toast("Modelo do comandante: " + rot);
+    } else {
+      toast("Não foi possível trocar: " + ((j && j.erro) || "erro"), true);
+    }
+  }catch(err){ toast("Falha ao trocar de modelo (rota indisponível).", true); }
+  if(!MODELOS.atual) MODELOS.atual = anterior;
+  renderModeloLista();
+}
+el("modBtn").addEventListener("click", (e) => { e.stopPropagation(); abrirModelo(el("modMenu").classList.contains("oculto")); });
+el("modBusca").addEventListener("input", renderModeloLista);
+el("modMenu").addEventListener("click", (e) => e.stopPropagation());
+document.addEventListener("click", () => { if(!el("modMenu").classList.contains("oculto")) abrirModelo(false); });
+el("modBusca").addEventListener("keydown", (e) => { if(e.key === "Escape"){ e.preventDefault(); abrirModelo(false); el("chatIn").focus(); } });
+
+/* ------------------------------------------------ ordem (arquivar) */
+el("ordemBtn").addEventListener("click", async () => {
+  const txt = el("ordemTxt").value.trim();
+  if(!txt){ toast("Escreva a ordem primeiro.", true); return; }
+  el("ordemBtn").disabled = true;
+  try{
+    const r = await fetch("/api/ordem", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text: txt }) });
+    const j = await r.json();
+    if(j && j.ok){ el("ordemTxt").value = ""; el("ordemSt").textContent = "arquivada em jogo/ordens.md"; toast("Ordem arquivada em jogo/ordens.md"); carregar(); }
+    else { el("ordemSt").textContent = "falha: " + ((j && j.erro) || "erro"); toast("Falha ao arquivar a ordem.", true); }
+  }catch(_){ el("ordemSt").textContent = "servidor offline"; toast("Servidor offline.", true); }
+  el("ordemBtn").disabled = false;
+});
+
+/* --------------------------------------------- terminal PowerShell real */
 const PS_OUT = el("psOut"), PS_IN = el("psIn"), PS_RUN = el("psRun"), PS_STATUS = el("psStatus");
 let psHist = [], psHistIdx = -1, psRodando = false;
 const PS_MSG_OFF = "[terminal indisponível — execute pelo app Electron (npm start)]";
@@ -357,16 +890,19 @@ async function psExecutar(){
   try{
     const resp = await fetch("/api/ps", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ cmd }) });
     if(!resp.ok){
-      if(resp.status >= 400 && resp.status < 600){ psWrite("[erro: HTTP " + resp.status + "]\n", "psErr"); }
-      else { psWrite(PS_MSG_OFF + "\n", "psErr"); }
+      if(resp.status >= 400 && resp.status < 600) psWrite("[erro: HTTP " + resp.status + "]\n", "psErr");
+      else psWrite(PS_MSG_OFF + "\n", "psErr");
     } else if(!resp.body){ psWrite(PS_MSG_OFF + "\n", "psErr"); }
-    else{
+    else {
       const reader = resp.body.getReader(), dec = new TextDecoder();
       let buf = "";
       for(let ch = await reader.read(); !ch.done; ch = await reader.read()){
         buf += dec.decode(ch.value, { stream:true });
         let i;
-        while((i = buf.indexOf("\n\n")) >= 0){ const raw = buf.slice(0, i); buf = buf.slice(i + 2); if(raw.trim()) psSSE(raw); }
+        while((i = buf.indexOf("\n\n")) >= 0){
+          const raw = buf.slice(0, i); buf = buf.slice(i + 2);
+          if(raw.trim()) psSSE(raw);
+        }
       }
     }
   }catch(err){ psWrite(PS_MSG_OFF + "\n", "psErr"); }
@@ -380,7 +916,71 @@ PS_IN.addEventListener("keydown", (ev) => {
 });
 PS_RUN.addEventListener("click", psExecutar);
 el("psLimpar").addEventListener("click", psLimpar);
+
+/* ------------------------------- painel inferior: altura e recolhimento */
+let termH = parseInt(LS.get("termH", ""), 10);
+if(!(termH > 0)) termH = Math.round(window.innerHeight * 0.35);
+function aplicarAltura(h){
+  const p = el("painelBaixo");
+  termH = Math.max(120, Math.min(window.innerHeight - 220, h));
+  if(!p.classList.contains("recolhido")) p.style.height = termH + "px";
+}
+function alternarTerminal(abrir){
+  const p = el("painelBaixo");
+  const recolhido = p.classList.contains("recolhido");
+  const deveAbrir = (typeof abrir === "boolean") ? abrir : recolhido;
+  p.classList.toggle("recolhido", !deveAbrir);
+  el("psToggle").querySelector("path").setAttribute("d", deveAbrir ? "M3 6l5 5 5-5" : "M3 10l5-5 5 5");
+  if(deveAbrir) aplicarAltura(termH); else PS_IN.blur();
+}
+(function(){
+  const drag = el("drag"), p = el("painelBaixo");
+  let arrastando = false;
+  drag.addEventListener("mousedown", (e) => { arrastando = true; p.classList.remove("recolhido"); el("psToggle").querySelector("path").setAttribute("d", "M3 6l5 5 5-5"); e.preventDefault(); document.body.classList.add("redim"); });
+  window.addEventListener("mousemove", (e) => {
+    if(!arrastando) return;
+    aplicarAltura(window.innerHeight - e.clientY - 22);
+    p.style.height = termH + "px";
+  });
+  window.addEventListener("mouseup", () => {
+    if(!arrastando) return;
+    arrastando = false; document.body.classList.remove("redim"); LS.set("termH", termH);
+  });
+})();
+el("psToggle").addEventListener("click", () => alternarTerminal());
+
+/* ------------------------------------------------------------- atalhos */
+document.addEventListener("keydown", (e) => {
+  if(e.ctrlKey && /^[1-5]$/.test(e.key)){
+    e.preventDefault();
+    const v = VIEWS[Number(e.key) - 1];
+    setView(v.id);
+    if(v.tab) ativarAba(v.tab, true); else alternarTerminal(true);
+  } else if(e.ctrlKey && (e.key === "`" || e.code === "Backquote")){
+    e.preventDefault(); alternarTerminal();
+  } else if(e.key === "Escape" && !el("modMenu").classList.contains("oculto")){
+    abrirModelo(false);
+  }
+});
+
+/* --------------------------------------------------------- inicialização */
+setView(LS.get("view", "unidades"));
+ativarAba(LS.get("tab", "gestor.chat"));
+if(LS.get("side", "1") === "0") el("lateral").classList.add("oculta");
+el("modNome").textContent = LS.get("modelo", "—");
+el("psToggle").querySelector("path").setAttribute("d", "M3 6l5 5 5-5");
+aplicarAltura(termH);
+window.addEventListener("resize", () => { aplicarAltura(termH); });
 psWrite("PowerShell pronto. Comandos destrutivos são bloqueados pela política do projeto.\n", "psMeta");
+chatNoFim();
+carregar();
+setInterval(carregar, 3000);
+checarStatus();
+setInterval(checarStatus, 5000);
+carregarModelos();
+setInterval(carregarModelos, 30000);
+relogio();
+setInterval(relogio, 1000);
 </script>
 </body>
 </html>
