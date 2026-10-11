@@ -37,3 +37,35 @@ a cada 3s, SSE do chat em `/api/chat`, POST `/api/ordem`, polling de `/api/chat/
 o canvas de estrelas. Eficiência elevada a 82.
 
 Status: em execução a inspeção da interface por **servo-revisao** (T-004).
+
+## OP-003 (encerramento) — Inspeção da interface
+
+**servo-revisao** inspecionou `jogo/interface.html`: **APROVADO COM RESSALVAS**. HTML
+bem-formado, zero referências externas, 16/16 ids herdados preservados, lógica de rede
+intacta e as 15 features presentes; teste real do servidor retornou HTTP 200 em `/`,
+`/api/estado` e `/api/registro`. Ressalvas registradas (a principal: timers dos rumores
+reiniciavam a cada ciclo de render).
+
+## OP-004 — Terminal PowerShell no app
+
+Ordem recebida: adicionar um terminal PowerShell à aplicação.
+
+**servo-construcao** adicionou ao processo principal (`app/main.js`) a rota `POST /api/ps`
+(SSE) que executa `powershell.exe -NoProfile -NonInteractive` sob a pasta do projeto,
+transmitindo stdout/stderr como `delta` e terminando com `done {code}`, com guarda-corpo
+`PS_BLOQUEIOS` contra comandos destrutivos. No painel (`interface.html`) foi criado o card
+"Terminal PowerShell" (`data-dept=comms`): saída monoespaçada com auto-scroll, prompt `PS>`,
+histórico ↑/↓, `Ctrl+L`, estado "executando..." e fallback de indisponibilidade.
+
+A 1ª inspeção **REPROVOU** por bug crítico: `req.on("close")` matava o processo antes de
+qualquer saída (`done {code:null}` sem `delta`). **servo-construcao** corrigiu para
+`res.on("close")` guardado por flag de finalização e endureceu a guarda (aliases `ri`/`mi`/
+`sc`/`ac`, redirecionamento `>`, cmdlets de escrita, etc.).
+
+2ª inspeção **APROVADO COM RESSALVAS**: 11/11 casos de teste reais passaram — `Get-Date`,
+acentos UTF-8, `node -v`, `Format-Table` liberado, e bloqueio efetivo de comandos
+destrutivos; cwd correto. Ressalva: a guarda é lista negra e não é sandbox (contornos como
+`& ri`, quebra de linha, `.Delete()` permanecem abertos) — avaliar modo restrito.
+
+> ⚠️ O terminal só passa a existir após **reiniciar o app** (o processo Electron em execução
+> foi iniciado antes da edição do `main.js`).
