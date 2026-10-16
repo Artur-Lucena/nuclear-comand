@@ -5,6 +5,7 @@ const { app, BrowserWindow, Menu, shell } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
 const { startServer } = require("../jogo/servidor.js");
+const { mensagemOpenCode } = require("./opencode-error.js");
 
 const JOGO_DIR = path.join(__dirname, "..", "jogo");
 const PROJETO_DIR = path.join(__dirname, "..");
@@ -31,6 +32,20 @@ async function iniciarOpenCode() {
       agent: "gestor",
     });
 
+    try {
+      const resposta = await client.model.default({ location: { directory: PROJETO_DIR } });
+      const modelo = resposta?.data ?? resposta;
+      if (modelo?.providerID && (modelo.modelID || modelo.id)) {
+        oc.modelo = {
+          providerID: modelo.providerID,
+          modelID: modelo.modelID || modelo.id,
+          name: modelo.name || modelo.modelID || modelo.id,
+        };
+      }
+    } catch (e) {
+      console.warn("[opencode] modelo padrão indisponível:", mensagemOpenCode(e));
+    }
+
     oc.pronto = true;
     oc.client = client;
     oc.session = session;
@@ -51,11 +66,11 @@ async function iniciarOpenCode() {
         else if (ev.type === "session.execution.failed") w.fail(d.error || "falha na execução");
         else if (ev.type === "session.execution.succeeded" || ev.type === "session.idle") w.done();
       }
-    })().catch((e) => console.error("[opencode] eventos:", e?.message || e));
+    })().catch((e) => console.error("[opencode] eventos:", mensagemOpenCode(e)));
 
     console.log("[opencode] conectado em", ep.url, "| sessao", session.id);
   } catch (e) {
-    oc.erro = String(e?.message || e);
+    oc.erro = mensagemOpenCode(e);
     console.error("[opencode] falha ao iniciar:", oc.erro);
   }
 }
@@ -105,13 +120,13 @@ function rotaChat(req, res) {
       onDelta: (d) => { if (!fim) sse(res, "delta", { d }); },
       tool: (info) => { if (!fim) sse(res, "passo", info); },
       done: () => finalizar("done", {}),
-      fail: (m) => finalizar("error", { message: String(m) }),
+      fail: (m) => finalizar("error", { message: mensagemOpenCode(m) }),
     });
 
     try {
       await oc.client.session.prompt({ sessionID: sid, text });
     } catch (e) {
-      finalizar("error", { message: String(e?.message || e) });
+      finalizar("error", { message: mensagemOpenCode(e) });
     }
     // trava de segurança
     setTimeout(() => finalizar("done", {}), 15 * 60 * 1000);

@@ -68,6 +68,8 @@ npm start
 Ou, no Windows, dê dois cliques em **`app\Imperio.bat`**.
 
 O painel abre em **http://127.0.0.1:5173** (se a porta estiver ocupada, ele tenta a próxima).
+Abra o painel pelo Electron. Abrir `jogo/interface.html` diretamente no navegador não
+inicia o servidor nem habilita chat e terminal.
 
 ---
 

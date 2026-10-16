@@ -711,7 +711,7 @@ async function enviarChat(){
   el("chatSend").disabled = true;
   try{
     const resp = await fetch("/api/chat", { method:"POST", headers:{ "Content-Type":"application/json", "X-Nuclear-Command-Request":"1" }, body: JSON.stringify({ text }) });
-    if(!resp.ok || !resp.body){
+    if(!resp.body || (!resp.ok && !String(resp.headers.get("Content-Type")).includes("text/event-stream"))){
       digitando(bot, false);
       bot.texto.textContent = "[erro: HTTP " + resp.status + "]";
     } else {
@@ -726,7 +726,13 @@ async function enviarChat(){
         }
       }
     }
-  }catch(err){ digitando(bot, false); bot.texto.textContent += (bot.texto.textContent ? "\n" : "") + "[erro: " + err.message + "]"; }
+  }catch(err){
+    digitando(bot, false);
+    const motivo = location.protocol === "file:"
+      ? "Abra o painel pelo aplicativo: app/Imperio.bat ou npm start na pasta app."
+      : "Servidor do painel indisponível. Reinicie o aplicativo e recarregue esta janela.";
+    bot.texto.textContent += (bot.texto.textContent ? "\n" : "") + "[erro: " + motivo + "]";
+  }
   digitando(bot, false);
   chatRodando = false;
   marcarTransmitindo(false);
@@ -756,7 +762,7 @@ async function checarStatus(){
     const s = await fetch("/api/chat/status", { cache:"no-store" }).then(r => r.json());
     if(s.opencode){ c.textContent = "OpenCode • sessão " + String(s.sessao || "").slice(0, 10); d.style.background = "var(--ok)"; if(s.modelo) aplicarModeloRotulo(s.modelo); }
     else { c.textContent = "OpenCode: " + (s.erro || "conectando…"); d.style.background = "var(--alerta)"; }
-  }catch(_){ c.textContent = "OpenCode: servidor offline"; d.style.background = "var(--erro)"; }
+  }catch(_){ c.textContent = location.protocol === "file:" ? "Abra pelo aplicativo (app/Imperio.bat)" : "Painel offline — reinicie o aplicativo"; d.style.background = "var(--erro)"; }
 }
 function relogio(){
   const d = new Date();
