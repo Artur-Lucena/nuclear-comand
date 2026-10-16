@@ -1,5 +1,7 @@
 # Núcleo de Comando
 
+O [esqueleto de evolução da IDE](docs/ESQUELETO_IDE.md) reúne o estado verificado, a arquitetura proposta, a UI alvo e a ordem de implementação.
+
 Sistema de gestão com **painel desktop (Electron)** que tem o **OpenCode embutido**: você
 conversa com o agente **GESTOR** pela própria janela e ele executa as ordens (cria arquivos,
 roda comandos, pesquisa, revisa). Idealizado "como se fosse um jogo", mas serve para
@@ -73,7 +75,7 @@ O painel abre em **http://localhost:5173** (se a porta estiver ocupada, ele tent
 
 ## Continuar em outra máquina
 
-O repositório é **privado** — entre com a mesma conta do GitHub.
+O repositório original está **público** no GitHub. Para enviar mudanças diretamente a ele, é preciso acesso de colaborador; contribuições também podem ser propostas por fork e pull request.
 
 ```powershell
 git clone https://github.com/bernardosdbc/nuclear-comand.git

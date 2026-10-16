@@ -1,6 +1,8 @@
-# Repository Notes
+# Notas do repositório
 
-- This workspace currently has no project source, manifests, or tests; do not assume a toolchain or build/test commands until project files are added.
+- O aplicativo Electron está em `app/`; o painel e seu servidor local estão em `jogo/`.
+- Consulte `docs/ESQUELETO_IDE.md` antes de ampliar a IDE. O documento distingue funções verificadas, parciais e ainda não implementadas.
+- No Windows, as dependências são instaladas em `app/` com `npm.cmd ci`; o aplicativo inicia com `npm.cmd start`.
 
 # Preferências
 
