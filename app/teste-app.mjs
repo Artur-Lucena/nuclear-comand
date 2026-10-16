@@ -1,7 +1,7 @@
 // Smoke test do app em execução: envia uma ordem para /api/chat e imprime a resposta.
-const resp = await fetch("http://localhost:5173/api/chat", {
+const resp = await fetch("http://127.0.0.1:5173/api/chat", {
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", "X-Nuclear-Command-Request": "1" },
   body: JSON.stringify({ text: process.argv[2] || "Responda apenas com: APP OK" }),
 });
 console.log("HTTP", resp.status);

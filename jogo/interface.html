@@ -710,7 +710,7 @@ async function enviarChat(){
   marcarTransmitindo(true); marcarSujo(true);
   el("chatSend").disabled = true;
   try{
-    const resp = await fetch("/api/chat", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text }) });
+    const resp = await fetch("/api/chat", { method:"POST", headers:{ "Content-Type":"application/json", "X-Nuclear-Command-Request":"1" }, body: JSON.stringify({ text }) });
     if(!resp.ok || !resp.body){
       digitando(bot, false);
       bot.texto.textContent = "[erro: HTTP " + resp.status + "]";
@@ -818,7 +818,7 @@ async function escolherModelo(providerID, modelID){
   abrirModelo(false);
   const anterior = MODELOS.atual;
   try{
-    const r = await fetch("/api/modelo", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ providerID, modelID }) });
+    const r = await fetch("/api/modelo", { method:"POST", headers:{ "Content-Type":"application/json", "X-Nuclear-Command-Request":"1" }, body: JSON.stringify({ providerID, modelID }) });
     const j = await r.json();
     if(j && j.ok){
       MODELOS.atual = j.atual || { providerID, modelID, name: modelID };
@@ -845,7 +845,7 @@ el("ordemBtn").addEventListener("click", async () => {
   if(!txt){ toast("Escreva a ordem primeiro.", true); return; }
   el("ordemBtn").disabled = true;
   try{
-    const r = await fetch("/api/ordem", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ text: txt }) });
+    const r = await fetch("/api/ordem", { method:"POST", headers:{ "Content-Type":"application/json", "X-Nuclear-Command-Request":"1" }, body: JSON.stringify({ text: txt }) });
     const j = await r.json();
     if(j && j.ok){ el("ordemTxt").value = ""; el("ordemSt").textContent = "arquivada em jogo/ordens.md"; toast("Ordem arquivada em jogo/ordens.md"); carregar(); }
     else { el("ordemSt").textContent = "falha: " + ((j && j.erro) || "erro"); toast("Falha ao arquivar a ordem.", true); }
@@ -888,7 +888,7 @@ async function psExecutar(){
   psWrite("PS> " + cmd + "\n", "psEcho");
   psOcupado(true);
   try{
-    const resp = await fetch("/api/ps", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ cmd }) });
+    const resp = await fetch("/api/ps", { method:"POST", headers:{ "Content-Type":"application/json", "X-Nuclear-Command-Request":"1" }, body: JSON.stringify({ cmd }) });
     if(!resp.ok){
       if(resp.status >= 400 && resp.status < 600) psWrite("[erro: HTTP " + resp.status + "]\n", "psErr");
       else psWrite(PS_MSG_OFF + "\n", "psErr");

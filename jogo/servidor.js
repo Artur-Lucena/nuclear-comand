@@ -29,6 +29,15 @@ function createHandler(dir, routes) {
   const ler = (p) => { try { return fs.readFileSync(path.join(dir, p), "utf8"); } catch { return null; } };
 
   return (req, res) => {
+    // Bloqueia DNS rebinding e requisições de páginas externas às rotas locais.
+    const host = req.headers.host || "";
+    if (!/^(?:localhost|127\.0\.0\.1):\d+$/.test(host) || Number(host.split(":").pop()) !== req.socket.localPort) {
+      return send(res, 403, "Host não permitido");
+    }
+    // Navegadores não podem enviar este cabeçalho entre origens sem preflight CORS.
+    if (req.method === "POST" && req.headers["x-nuclear-command-request"] !== "1") {
+      return send(res, 403, "Requisição não autorizada");
+    }
     const u = new URL(req.url, "http://localhost");
     const p = u.pathname;
 
@@ -88,7 +97,7 @@ function createHandler(dir, routes) {
 // Inicia o servidor. onReady(port, server) é chamado quando estiver ouvindo.
 function startServer(opts = {}, onReady) {
   const dir = opts.dir || __dirname;
-  const portStart = opts.portStart || 5173;
+  const portStart = opts.portStart ?? 5173;
   const tries = opts.tries ?? 20;
   const handler = createHandler(dir, opts.routes);
 
@@ -99,8 +108,8 @@ function startServer(opts = {}, onReady) {
       console.error("Erro no servidor:", e.message);
       if (onReady) onReady(null, null);
     });
-    server.listen(port, () => {
-      if (onReady) onReady(port, server);
+    server.listen(port, "127.0.0.1", () => {
+      if (onReady) onReady(server.address().port, server);
     });
     return server;
   }
@@ -113,7 +122,7 @@ module.exports = { startServer, createHandler };
 if (require.main === module) {
   startServer({}, (port) => {
     if (port) {
-      console.log(`\n  🛰️  NÚCLEO DE COMANDO — Sistema de Gestão em  http://localhost:${port}\n`);
+      console.log(`\n  🛰️  NÚCLEO DE COMANDO — Sistema de Gestão em  http://127.0.0.1:${port}\n`);
       console.log("  (Ctrl+C para parar)\n");
     }
   });

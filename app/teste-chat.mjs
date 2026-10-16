@@ -76,12 +76,12 @@ console.log("sessao:", oc.session.id);
 
 startServer({ dir: JOGO_DIR, portStart: 5199, routes: { "/api/chat": rotaChat, "/api/chat/status": rotaStatus } }, async (port) => {
   console.log("servidor em", port);
-  const status = await fetch(`http://localhost:${port}/api/chat/status`).then((r) => r.json());
+  const status = await fetch(`http://127.0.0.1:${port}/api/chat/status`).then((r) => r.json());
   console.log("status:", JSON.stringify(status));
 
-  const resp = await fetch(`http://localhost:${port}/api/chat`, {
+  const resp = await fetch(`http://127.0.0.1:${port}/api/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Nuclear-Command-Request": "1" },
     body: JSON.stringify({ text: "Responda apenas com: CANAL OK" }),
   });
   console.log("HTTP", resp.status);

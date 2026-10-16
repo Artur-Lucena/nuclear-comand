@@ -384,7 +384,7 @@ function rotaPowerShell(req, res) {
 
 // ---------------------------------------------------------------- janela
 function criarJanela(port) {
-  baseUrl = `http://localhost:${port}`;
+  baseUrl = `http://127.0.0.1:${port}`;
   mainWindow = new BrowserWindow({
     width: 1320,
     height: 900,

@@ -67,7 +67,7 @@ npm start
 
 Ou, no Windows, dê dois cliques em **`app\Imperio.bat`**.
 
-O painel abre em **http://localhost:5173** (se a porta estiver ocupada, ele tenta a próxima).
+O painel abre em **http://127.0.0.1:5173** (se a porta estiver ocupada, ele tenta a próxima).
 
 ---
 
@@ -159,6 +159,10 @@ Os drones são **mão de obra pura**: executam literalmente e não dão opiniõe
 | `POST` | `/api/chat` | Envia mensagem ao GESTOR; resposta em **streaming (SSE)**. |
 | `GET` | `/api/chat/status` | Estado da conexão com o OpenCode. |
 | `POST` | `/api/ps` | Executa um comando no PowerShell; saída em **streaming (SSE)**. |
+
+O servidor aceita conexões somente em `127.0.0.1`. Requisições `POST` precisam do
+cabeçalho `X-Nuclear-Command-Request: 1`, enviado pelo painel. Clientes externos ao
+painel que usam a API local também devem enviá-lo.
 
 ---
 
